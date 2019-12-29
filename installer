@@ -771,8 +771,8 @@ write_manager_script () {
 }
 
 [ $1 ] && BRANCH=$1 || BRANCH=master
-URL_GEN=https://raw.githubusercontent.com/thuantran/dnscrypt-asuswrt-installer/$BRANCH/gen
-URL_ARCH=https://github.com/thuantran/dnscrypt-asuswrt-installer/raw/$BRANCH
+URL_GEN=https://raw.githubusercontent.com/jumpsmm7/dnscrypt-asuswrt-installer/$BRANCH/gen
+URL_ARCH=https://github.com/jumpsmm7/dnscrypt-asuswrt-installer/raw/$BRANCH
 
 case $(uname -m) in
   armv7l)
