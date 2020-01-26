@@ -92,7 +92,11 @@ case $1 in
     start_dnscrypt
     ;;
   dnsmasq)
-    append_on_demand /etc/dnsmasq.conf "no-resolv" "listen-address=127.0.0.1"
+    if [ "$(nvram get dnspriv_enable)" = "1" ]; then
+      nvram set dnspriv_enable="0"
+      nvram commit
+    fi
+    append_on_demand /etc/dnsmasq.conf "no-resolv"
     append_on_demand /tmp/resolv.dnsmasq "server=127.0.0.1#65053"
     for DNS in $(nvram get wan_dns) $(nvram get ipv6_get_dns); do
     sed -i "/^server=$DNS.*$/d" /tmp/resolv.dnsmasq
@@ -101,10 +105,12 @@ case $1 in
     DNS="$(nvram get "ipv6_dns$VAR")"
     [ -n "$DNS" ] && sed -i "/^server=$DNS.*$/d" /tmp/resolv.dnsmasq
     done
-    if [ "$(nvram get dns_local_cache)" = "0" ]; then
-      for DNS in 127.0.0.1 $(nvram get wan_dns); do
-      sed -i "/^nameserver $DNS.*$/d" /tmp/resolv.conf
-      sed -i "/^nameserver $DNS.*$/d" /etc/resolv.conf
+    if [ "$(nvram get dns_local_cache)" = "1" ]; then
+      for LOCAL in 127.0.0.1; do
+      sed -i "/^nameserver $LOCAL.*$/d" /tmp/resolv.conf
+      sed -i "/^nameserver $LOCAL.*$/d" /etc/resolv.conf
+      done
+      for DNS in $(nvram get wan_dns); do
       append_on_demand /etc/resolv.conf "nameserver $DNS"
       append_on_demand /tmp/resolv.conf "nameserver $DNS"
       done
