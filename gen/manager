@@ -101,16 +101,6 @@ case $1 in
     DNS="$(nvram get "ipv6_dns$VAR")"
     [ -n "$DNS" ] && sed -i "/^server=$DNS.*$/d" /tmp/resolv.dnsmasq
     done
-    if [ "$(nvram get dns_local_cache)" = "1" ]; then
-      for LOCAL in 127.0.0.1; do
-      sed -i "/^nameserver $LOCAL.*$/d" /tmp/resolv.conf
-      sed -i "/^nameserver $LOCAL.*$/d" /etc/resolv.conf
-      done
-      for DNS in $(nvram get wan_dns); do
-      append_on_demand /etc/resolv.conf "nameserver $DNS"
-      append_on_demand /tmp/resolv.conf "nameserver $DNS"
-      done
-    fi
     ;;
   fw-rules)
     iptables -t nat -C  PREROUTING -i br0 -p udp --dport 53 -j DNAT --to $(nvram get lan_ipaddr) > /dev/null 2>&1
