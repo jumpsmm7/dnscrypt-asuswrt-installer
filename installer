@@ -33,6 +33,19 @@ check_dnscrypt_toml () {
   fi
 }
 
+check_dns_environment () {
+  local DNSPRIV=`nvram get dnspriv_enable`
+  local DNS_LOCAL=`nvram get dns_local_cache`
+  if [ $DNSPRIV -ne 0 ] || [ $DNS_LOCAL -ne 0 ]; then
+    echo -e "$INFO Setting up Correct DNS Environment."
+    nvram set dnspriv_enable=0
+    nvram set dns_local_cache=0
+    nvram commit
+  else
+    echo -e "$INFO DNS Environment is Ready."
+  fi
+}
+
 check_jffs_enabled () {
   if [ "`nvram get jffs2_format`" == "1" ]; then
     echo -e "$ERROR JFFS partition is scheduled to be reformatted"
@@ -1062,6 +1075,7 @@ case $(uname -m) in
     ;;
 esac
 
+check_dns_environment
 check_jffs_enabled
 cleanup
 
