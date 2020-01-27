@@ -92,10 +92,6 @@ case $1 in
     start_dnscrypt
     ;;
   dnsmasq)
-    if [ "$(nvram get dnspriv_enable)" = "1" ]; then
-      nvram set dnspriv_enable="0"
-      nvram commit
-    fi
     append_on_demand /etc/dnsmasq.conf "no-resolv"
     append_on_demand /tmp/resolv.dnsmasq "server=127.0.0.1#65053"
     for DNS in $(nvram get wan_dns) $(nvram get ipv6_get_dns); do
