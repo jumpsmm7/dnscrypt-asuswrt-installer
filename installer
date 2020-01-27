@@ -272,6 +272,7 @@ choose_dnscrypt_server_static () {
     case $CHOSEN in
       1)
         echo -e "$INFO User has specified to define a Static Server."
+        read_yesno "Do you want to remove any old static configurations?" && toml_static_removal || echo -e "$INFO Continuing to static server configuration."
         static_chosen 1
         ;;
       2)
@@ -489,8 +490,7 @@ nextdns_authen () {
   local GVARS_ARGS
   toml_gvars_prep server_names "\"['NextDNS-Custom']\""
   eval toml_gvars_write $GVARS_ARGS
-  toml_nvars_delete "[static.'NextDNS-Custom']" $TOML_FILE
-  toml_nvars_delete "stamp =" $TOML_FILE
+  toml_static_removal
   toml_nvars_insert "[static]" "[static.'NextDNS-Custom']" $TOML_FILE
   toml_nvars_insert "[static.'NextDNS-Custom']" "stamp = '$SDNS'" $TOML_FILE
 }
@@ -674,8 +674,6 @@ static_chosen () {
   local SDNSSTAMP
   local STATICNAME
   if [ "$1" -eq 0 ]; then
-    toml_nvars_delete "[static.'" $TOML_FILE
-    toml_nvars_delete "stamp =" $TOML_FILE
     echo -e "$INFO Choose how your DNS servers are selected:"
     echo -e "  1) Automatically"
     echo -e "  2) Manually"
@@ -702,8 +700,6 @@ static_chosen () {
   read -r STATICNAME
   toml_gvars_prep server_names "\"['$STATICNAME']\""
   toml_gvars_prep dnscrypt_servers true doh_servers true require_dnssec false require_nolog false require_nofilter false
-  toml_nvars_delete "[static.'" $TOML_FILE
-  toml_nvars_delete "stamp =" $TOML_FILE
   toml_nvars_insert "[static]" "[static.'$STATICNAME']" $TOML_FILE
   toml_nvars_insert "[static.'$STATICNAME']" "stamp = '$SDNSSTAMP'" $TOML_FILE
 }
@@ -917,6 +913,12 @@ toml_nvars_append () {
 toml_nvars_delete () {
   PATTERN=$(_quote "$1")
   sed -i "/$PATTERN/d" $2
+}
+
+toml_static_removal () {
+echo -e "$INFO Removing any static server configuration."
+toml_nvars_delete "[static.'" $TOML_FILE
+toml_nvars_delete "stamp =" $TOML_FILE
 }
 
 uninst_all () {
