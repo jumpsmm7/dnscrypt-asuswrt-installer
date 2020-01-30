@@ -483,7 +483,37 @@ inst_dnscrypt () {
     end_op_message
     return
   fi
+  if [ -f ${TARG_DIR}/dnscrypt-proxy ]; then
+    local LVERSION=$("${TARG_DIR}/dnscrypt-proxy" -version)
+    local LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releases/latest"
+    local RMERSION=$(curl -sL "$LATEST_URL" | grep "tag_name" | head -1 | cut -d \" -f 4)
+    local RMERSION_TAR=dnscrypt-proxy-${DNSCRYPT_ARCH}-${RMERSION}.tar.gz
+    [ -z "$LVERSION" ] && exit 1
+    [ -z "$RMERSION" ] && exit 1
 
+    echo locally installed
+    echo -e "$INFO $LVERSION"
+
+    echo remote git version
+    echo -e "$INFO $RMERSION"
+
+    if [ "$RMERSION" != "$LVERSION" ]; then
+       echo -e "$INFO Updating"
+       if [ -f ${TARG_DIR}/installer ]; then
+          toml_nvars_replace "DNSCRYPT_VER=$LVERSION" "DNSCRYPT_VER=$RMERSION" ${TARG_DIR}/installer
+       fi
+       download_file $TARG_DIR 755 $URL_GEN/manager
+       download_file $TARG_DIR 644 https://github.com/jedisct1/dnscrypt-proxy/releases/download/${RMERSION}/${RMERSION_TAR} \
+         $RESOLVERS_URL_PREFIX/public-resolvers.md \
+         $RESOLVERS_URL_PREFIX/public-resolvers.md.minisig \
+         $RESOLVERS_URL_PREFIX/relays.md \
+         $RESOLVERS_URL_PREFIX/relays.md.minisig
+       chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
+       tar xzv -C $TARG_DIR -f $TARG_DIR/$RMERSION_TAR
+    else
+    echo -e "$INFO No Update Needed"
+    fi
+  else
   download_file $TARG_DIR 755 $URL_GEN/manager
   download_file $TARG_DIR 644 https://github.com/jedisct1/dnscrypt-proxy/releases/download/${DNSCRYPT_VER}/${DNSCRYPT_TAR} \
     $RESOLVERS_URL_PREFIX/public-resolvers.md \
@@ -492,6 +522,7 @@ inst_dnscrypt () {
     $RESOLVERS_URL_PREFIX/relays.md.minisig
   chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
   tar xzv -C $TARG_DIR -f $TARG_DIR/$DNSCRYPT_TAR
+  fi
   if [ $? -ne 0 ]; then
     echo -e "$ERROR Unable to download dnscrypt-proxy package for your router"
     end_op_message
