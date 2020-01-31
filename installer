@@ -241,6 +241,47 @@ check_swap () {
   inst_swap
 }
 
+check_version () {
+  if [ -f ${TARG_DIR}/installer ] && [ -f ${TARG_DIR}/dnscrypt-proxy ]; then
+    local LVERSION=$("${TARG_DIR}/dnscrypt-proxy" -version)
+    local LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releases/latest"
+    local RMERSION=$(curl -sL "$LATEST_URL" | grep "tag_name" | head -1 | cut -d \" -f 4)
+      [ -z "$LVERSION" ] && exit 1
+      [ -z "$RMERSION" ] && exit 1
+
+      echo locally installed
+      echo -e "$INFO $LVERSION"
+
+      echo remote git version
+      echo -e "$INFO $RMERSION"
+
+      if [ "$RMERSION" != "$LVERSION" ]; then
+        echo -e "$INFO New DNSCRYPT_VER=$RMERSION Available!"
+        echo -e "$INFO Run Option 1 of the Installer to upgrade DNScrypt Proxy."
+      else
+        echo -e "$INFO DNSCRYPT_VER=$LVERSION"
+      fi
+    local RURL="https://raw.githubusercontent.com/thuantran/dnscrypt-asuswrt-installer/master/installer"
+    local LINSTALL=v$(cat "${TARG_DIR}/installer" | grep -m1 "^DI_VERSION=" | grep -oE '[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+    local RMNSTALL=v$(curl -sL "$RURL" | grep -m1 "^DI_VERSION=" | grep -oE '[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+      [ -z "$LINSTALL" ] && exit 1
+      [ -z "$RMNSTALL" ] && exit 1
+     
+      echo locally installed
+      echo -e "$INFO $LINSTALL"
+
+      echo remote git version
+      echo -e "$INFO $RMNSTALL"
+     
+      if [ "$RMNSTALL" != "$LINSTALL" ]; then
+        echo -e "$INFO New DI_VERSION=$RMNSTALL Available!"
+        echo -e "$INFO Run Option 1 of the Installer to upgrade DNScrypt Asuswrt Installer."
+      else
+        echo -e "$INFO DI_VERSION=$LINSTALL"
+      fi
+  fi
+}
+
 choose_dnscrypt_server () {
   local USE_IPV6
   read_yesno "Do you want to use DNS server over IPv6 (yes only if your connection has IPv6)?" && USE_IPV6=true || USE_IPV6=false
@@ -346,7 +387,6 @@ choose_dnscrypt_server_static () {
         ;;
     esac
 }
-
 
 choose_relays_manual () {
   local INDEX=$1
@@ -483,6 +523,30 @@ inst_dnscrypt () {
     end_op_message
     return
   fi
+  if [ -f ${TARG_DIR}/installer ]; then
+    local RURL="https://raw.githubusercontent.com/thuantran/dnscrypt-asuswrt-installer/master/installer"
+    local LINSTALL=v$(cat "${TARG_DIR}/installer" | grep -m1 "^DI_VERSION=" | grep -oE '[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+    local RMNSTALL=v$(curl -sL "$RURL" | grep -m1 "^DI_VERSION=" | grep -oE '[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+     [ -z "$LINSTALL" ] && exit 1
+     [ -z "$RMNSTALL" ] && exit 1
+     
+     echo locally installed
+     echo -e "$INFO $LINSTALL"
+
+     echo remote git version
+     echo -e "$INFO $RMNSTALL"
+     
+    if [ "$RMNSTALL" != "$LINSTALL" ]; then
+       echo -e "$INFO New DI_VERSION=$RMNSTALL Available!"
+       echo -e "$INFO Updating DI_VERSION=$LINSTALL to $RMNSTALL ."
+       curl -L -s -k -O $RURL && chmod 0755 installer && installer inst_dnscrypt; mv installer ${TARG_DIR}/installer
+       return
+    else
+       echo -e "$INFO DI_VERSION=$LINSTALL is current, no new DNScrypt Asuswrt Installer Version Available."
+    fi
+  else
+  curl -L -s -k -O $RURL && chmod 0755 installer; mv installer ${TARG_DIR}/installer
+  fi
   if [ -f ${TARG_DIR}/dnscrypt-proxy ]; then
     local LVERSION=$("${TARG_DIR}/dnscrypt-proxy" -version)
     local LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releases/latest"
@@ -498,7 +562,8 @@ inst_dnscrypt () {
     echo -e "$INFO $RMERSION"
 
     if [ "$RMERSION" != "$LVERSION" ]; then
-       echo -e "$INFO Updating"
+       echo -e "$INFO New DNSCRYPT_VER=$RMERSION Available!"
+       echo -e "$INFO Updating DNSCRYPT_VER=$LVERSION to $RMERSION ."
        if [ -f ${TARG_DIR}/installer ]; then
           toml_nvars_replace "DNSCRYPT_VER=$LVERSION" "DNSCRYPT_VER=$RMERSION" ${TARG_DIR}/installer
        fi
@@ -511,7 +576,8 @@ inst_dnscrypt () {
        chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
        tar xzv -C $TARG_DIR -f $TARG_DIR/$RMERSION_TAR
     else
-    echo -e "$INFO No Update Needed"
+    echo -e "$INFO No New DNScrypt-Proxy Version Available."
+    toml_nvars_replace "DNSCRYPT_VER=$LVERSION" "DNSCRYPT_VER=$RMERSION" ${TARG_DIR}/installer
     fi
   else
   download_file $TARG_DIR 755 $URL_GEN/manager
@@ -1160,6 +1226,7 @@ case $(uname -m) in
     ;;
 esac
 
+check_version
 check_dns_environment
 check_jffs_enabled
 cleanup
