@@ -1215,7 +1215,7 @@ menu () {
   echo -e "  8) Install swap file"
   echo -e "  9) Uninstall ALL"
   echo -e "  q) Quit"
-  read_input_num "Please enter the number designates your selection:" 1 9 q
+  read_input_num "Please enter the number that designates your selection:" 1 9 q
   case $CHOSEN in
     1)
       echo -e "$INFO This operation will install dnscrypt-proxy and related files (<6MB)"
