@@ -35,11 +35,12 @@ check_dnscrypt_toml () {
 }
 
 check_dns_environment () {
-  local DNSPRIV=`nvram get dnspriv_enable`
+  local DNSPRIV=$(nvram get dnspriv_enable)
   if [ $DNSPRIV -ne 0 ]; then
     echo -e "$INFO Setting up Correct DNS Environment."
     nvram set dnspriv_enable=0
     nvram commit
+    service restart_dnsmasq
     echo -e "$INFO DNS Environment is Ready."
   else
     echo -e "$INFO DNS Environment is Ready."
@@ -47,7 +48,7 @@ check_dns_environment () {
 }
 
 check_dns_filter () {
-  local DNSFIL=`nvram get dnsfilter_enable_x`
+  local DNSFIL=$(nvram get dnsfilter_enable_x)
   if [ "$1" -eq 0 ] && [ $DNSFIL -ne 0 ]; then
     nvram set dnsfilter_enable_x="0"
     nvram commit
