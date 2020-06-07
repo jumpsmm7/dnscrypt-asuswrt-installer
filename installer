@@ -220,7 +220,8 @@ check_anonymized_support () {
           NUMFRAG=0
           for BLOCKED in $FRAGSBLOCKED; do
             if [ "$(grep '^server_names = .*'"${BLOCKED}"'.*' $TOML_FILE)" ]; then
-              if [ $NUMFRAG -eq 0 ]; then
+              NUMFRAG=$((NUMFRAG + 1))
+              if [ $NUMFRAG -eq 1 ]; then
                 local AVARS_ARGS
                 local USE_BROKEN
                 echo -e "$WARNING Found Incompatible Server(s)"
@@ -229,7 +230,6 @@ check_anonymized_support () {
                 eval toml_avars_write "$AVARS_ARGS"
               fi
             fi
-            NUMFRAG=$((NUMFRAG + 1))
           done
         else
           local AVARS_ARGS
