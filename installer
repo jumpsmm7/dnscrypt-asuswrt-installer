@@ -195,7 +195,7 @@ check_anonymized_support () {
         local SERVER
         COUNT=0
         for DNSCRYPT in ${VARSARGS}; do
-          if [ "$(grep '^server_names = .*'"${DNSCRYPT}"'.*' ${TOML_FILE})" ]; then
+          if [ "$(grep '^server_names = .*"${DNSCRYPT}".*' "${TOML_FILE}")" ]; then
             SERVER=$(echo "${DNSCRYPT}")
             echo -e "${INFO} Found Servers for Anonymized Dnscrypt Support"
             echo -e "${INFO} Choose Relays for DNSCRYPT server"
@@ -219,7 +219,7 @@ check_anonymized_support () {
           local NUMFRAG
           NUMFRAG=0
           for BLOCKED in ${FRAGSBLOCKED}; do
-            if [ "$(grep '^server_names = .*'"${BLOCKED}"'.*' ${TOML_FILE})" ]; then
+            if [ "$(grep '^server_names = .*"${BLOCKED}".*' ${TOML_FILE})" ]; then
               if [ ${NUMFRAG} -eq 0 ]; then
                 local AVARS_ARGS
                 local USE_BROKEN
