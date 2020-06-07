@@ -1495,7 +1495,7 @@ write_conf () {
 write_command_script () {
   local TARG=$1
   local COMMAND=$2
-  local FILENAME="$(basename \""$TARG"\")"
+  local FILENAME="$(basename "$TARG")"
 
   if [ ! -f "$TARG" ]; then
     echo -e "$INFO Creating $FILENAME file"
@@ -1514,7 +1514,7 @@ write_command_script () {
 write_manager_script () {
   local TARG=$1
   local OP=$2
-  local FILENAME="$(basename \""$TARG"\")"
+  local FILENAME="$(basename "$TARG")"
   local COMMAND=$TARG_DIR/manager
 
   if [ ! -f "$TARG" ]; then
