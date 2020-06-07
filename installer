@@ -199,7 +199,7 @@ check_anonymized_support () {
             SERVER=$(echo "$DNSCRYPT")
             echo -e "$INFO Found Servers for Anonymized Dnscrypt Support"
             echo -e "$INFO Choose Relays for DNSCRYPT server"
-            if [ $COUNT -eq 0 ]; then
+            if [ "$COUNT" -eq 0 ]; then
               local AVARS_ARGS
               echo -e "$INFO Found $DNSCRYPT server"
               choose_relays_manual
@@ -211,7 +211,7 @@ check_anonymized_support () {
             COUNT=$((COUNT + 1))
           fi
         done
-        if [ $COUNT -ne 0 ]; then
+        if [ "$COUNT" -ne 0 ]; then
           local FRAGSBLOCKED
           FRAGSBLOCKED="cisco cisco-ipv6 cisco-familyshield cisco-familyshield-ipv6 quad9-dnscrypt-ip4-filter-alt quad9-dnscrypt-ip4-filter-pri quad9-dnscrypt-ip4-nofilter-alt quad9-dnscrypt-ip4-nofilter-pri quad9-dnscrypt-ip6-filter-alt quad9-dnscrypt-ip6-filter-pri quad9-dnscrypt-ip6-nofilter-alt quad9-dnscrypt-ip6-nofilter-pri cleanbrowsing-adult cleanbrowsing-family-ipv6 cleanbrowsing-family cleanbrowsing-security"
           local BLOCKED
@@ -220,8 +220,8 @@ check_anonymized_support () {
           NUMFRAG=0
           for BLOCKED in $FRAGSBLOCKED; do
             if [ "$(grep '^server_names = .*'${BLOCKED}'.*' $TOML_FILE)" ]; then
-              if [ $NUMFRAG -eq 0 ]; then
-                local AVARS_ARGS
+              if [ "$NUMFRAG" -eq 0 ]; then
+                local AVARS_ARGS=""
                 local USE_BROKEN
                 echo -e "$WARNING Found Incompatible Server(s)"
                 read_yesno "Do you want to skip using incompatible resolvers instead of using them directly?" && USE_BROKEN=true || USE_BROKEN=false
