@@ -774,8 +774,7 @@ inst_dnscrypt () {
   fi
   local MD5SUM_L
   local MD5SUM_R
-  MD5SUM_L="$(md5sum ${TARG_DIR}/installer | cut -d' ' -f1)"
-  MD5SUM_R="$(curl -fsL "${RURL}" | md5sum | awk '{print $1}')"
+  [ -f ${TARG_DIR}/installer ] && MD5SUM_L="$(md5sum ${TARG_DIR}/installer | cut -d' ' -f1)" && MD5SUM_R="$(curl -fsL "${RURL}" | md5sum | awk '{print $1}')"
   if [ ! -f ${TARG_DIR}/installer ]; then 
     download_file ${TARG_DIR} 755 ${RURL}
   elif [ "${MD5SUM_R}" != "${MD5SUM_L}" ]; then
