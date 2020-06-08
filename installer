@@ -1107,7 +1107,6 @@ static_chosen () {
   STATIC="${STATICNAME}-Static"
   if [ "$(echo "$STATICRESOLVER" | grep -F "$STATIC")" ]; then
     echo -e "$INFO $STATIC is already set"
-    static_chosen 0
   else
     toml_nvars_insert "[static]" "[static.'${STATICNAME}-Static']" $TOML_FILE
     toml_nvars_insert "[static.'${STATICNAME}-Static']" "stamp = '$SDNSSTAMP'" $TOML_FILE
@@ -1141,7 +1140,8 @@ static_chosen_manual () {
       read -r SDNSSTAMP
     elif [ "$ANOTHER" == "NO" ]; then
       echo -e "$INFO finished static setup."
-      continue
+      toml_gvars_prep server_names "\"[${STATICRESOLVER}, $RESOLVERS]\""
+      return
     fi
   fi
 
@@ -1149,7 +1149,6 @@ static_chosen_manual () {
   STATIC="${STATICNAME}-Static"
   if [ "$(echo "$STATICRESOLVER" | grep -F "$STATIC")" ]; then
     echo -e "$INFO $STATIC is already set"
-    static_chosen_manual 0
   else
     toml_nvars_insert "[static]" "[static.'${STATICNAME}-Static']" $TOML_FILE
     toml_nvars_insert "[static.'${STATICNAME}-Static']" "stamp = '$SDNSSTAMP'" $TOML_FILE
@@ -1176,7 +1175,6 @@ static_choose_manual_addition () {
     read_input_num "Please choose next DNS server or press n to stop" 1 "$INDEX" n
     if [ $? -eq 1 ]; then
       static_chosen_manual 0
-      toml_gvars_prep server_names "\"[${STATICRESOLVER}, $RESOLVERS]\""
       return
     fi
   fi
