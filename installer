@@ -1141,7 +1141,7 @@ static_chosen_manual () {
       read -r SDNSSTAMP
     elif [ "$ANOTHER" == "NO" ]; then
       echo -e "$INFO finished static setup."
-      return
+      continue
     fi
   fi
 
