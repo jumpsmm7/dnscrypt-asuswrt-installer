@@ -230,7 +230,7 @@ check_anonymized_support () {
             NUMFRAG=$((NUMFRAG + 1))
           fi          
         done
-        if [ "$COUNT" -eq 0 ] && if [ "$NUMFRAG" -eq 0 ]; then
+        if [ "$COUNT" -eq 0 ] && [ "$NUMFRAG" -eq 0 ]; then
           local AVARS_ARGS
           echo -e "$WARNING No compatible servers detected."
           echo -e "$INFO To continue users may still select relays for Wild-Card Support."
