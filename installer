@@ -103,7 +103,7 @@ backup_restore () {
         $RESOLVERS_URL_PREFIX/relays.md \
         $RESOLVERS_URL_PREFIX/relays.md.minisig
     fi 
-    chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
+    chown $(nvram get http_username):$(nvram get http_username) $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
     del_jffs_script /jffs/scripts/wan-start dnscrypt-start
     del_jffs_script /jffs/scripts/openvpn-event
     del_jffs_script /jffs/scripts/firewall-start
@@ -146,7 +146,7 @@ backup_restore () {
       $RESOLVERS_URL_PREFIX/public-resolvers.md.minisig \
       $RESOLVERS_URL_PREFIX/relays.md \
       $RESOLVERS_URL_PREFIX/relays.md.minisig
-    chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
+    chown $(nvram get http_username):$(nvram get http_username) $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
     del_jffs_script /jffs/scripts/wan-start dnscrypt-start
     del_jffs_script /jffs/scripts/openvpn-event
     del_jffs_script /jffs/scripts/firewall-start
@@ -918,7 +918,7 @@ inst_dnscrypt () {
     $RESOLVERS_URL_PREFIX/public-resolvers.md.minisig \
     $RESOLVERS_URL_PREFIX/relays.md \
     $RESOLVERS_URL_PREFIX/relays.md.minisig
-  chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
+  chown $(nvram get http_username):$(nvram get http_username) $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
   del_jffs_script /jffs/scripts/wan-start dnscrypt-start
   del_jffs_script /jffs/scripts/openvpn-event
   del_jffs_script /jffs/scripts/firewall-start
@@ -1333,7 +1333,7 @@ setup_dnscrypt_impl () {
     read_input_dns_n "2nd Default is" 8.8.8.8
     read_input_num "Set log level, default is 2, 0 is the most verbose" 0 6
     toml_nvars_replace "fallback_resolver =" "fallback_resolvers = ['$DNS_SERVER:53', '$NDNS_SERVER:53']" $TOML_FILE
-    toml_gvars_prep fallback_resolvers "\"['$DNS_SERVER:53', '$NDNS_SERVER:53']\"" log_level "$CHOSEN" ignore_system_dns true listen_addresses "[\'127.0.1.1:53\']" cache false cert_ignore_timestamp true user_name "\'nobody\'" max_clients 25000 keepalive 120 netprobe_timeout 120 netprobe_address "\'$DNS_SERVER:53\'"
+    toml_gvars_prep fallback_resolvers "\"['$DNS_SERVER:53', '$NDNS_SERVER:53']\"" log_level "$CHOSEN" ignore_system_dns true listen_addresses "[\'127.0.1.1:53\']" cache false cert_ignore_timestamp true user_name "\'$(nvram get http_username)\'" max_clients 25000 keepalive 120 netprobe_timeout 120 netprobe_address "\'$DNS_SERVER:53\'"
     echo -e "$INFO Writing dnscrypt-proxy configuration..."
     eval toml_gvars_write "$GVARS_ARGS"
     echo -e "$INFO Evaluating other possibilities for dnscrypt-proxy configuration..."
