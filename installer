@@ -92,9 +92,11 @@ backup_restore () {
       download_file $TARG_DIR 644 $RESOLVERS_URL_PREFIX/public-resolvers.md \
         $RESOLVERS_URL_PREFIX/public-resolvers.md.minisig \
         $RESOLVERS_URL_PREFIX/relays.md \
-        $RESOLVERS_URL_PREFIX/relays.md.minisig
+        $RESOLVERS_URL_PREFIX/relays.md.minisig \
+        $RESOLVERS_URL_PREFIX/odoh.md \
+        $RESOLVERS_URL_PREFIX/odoh.md.minisig
     fi 
-    chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
+    chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig $TARG_DIR/odoh.md $TARG_DIR/odoh.md.minisig
     write_manager_script /jffs/scripts/dnsmasq.postconf dnsmasq
     write_manager_script /jffs/scripts/init-start init-start
     setup_dnscrypt
@@ -132,8 +134,10 @@ backup_restore () {
     download_file $TARG_DIR 644 $RESOLVERS_URL_PREFIX/public-resolvers.md \
       $RESOLVERS_URL_PREFIX/public-resolvers.md.minisig \
       $RESOLVERS_URL_PREFIX/relays.md \
-      $RESOLVERS_URL_PREFIX/relays.md.minisig
-    chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
+      $RESOLVERS_URL_PREFIX/relays.md.minisig \
+      $RESOLVERS_URL_PREFIX/odoh.md \
+      $RESOLVERS_URL_PREFIX/odoh.md.minisig
+    chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig $TARG_DIR/odoh.md $TARG_DIR/odoh.md.minisig
     write_manager_script /jffs/scripts/dnsmasq.postconf dnsmasq
     write_manager_script /jffs/scripts/init-start init-start
     setup_dnscrypt
@@ -1072,8 +1076,10 @@ inst_dnscrypt () {
   download_file $TARG_DIR 644 $RESOLVERS_URL_PREFIX/public-resolvers.md \
     $RESOLVERS_URL_PREFIX/public-resolvers.md.minisig \
     $RESOLVERS_URL_PREFIX/relays.md \
-    $RESOLVERS_URL_PREFIX/relays.md.minisig
-  chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig
+    $RESOLVERS_URL_PREFIX/relays.md.minisig \
+    $RESOLVERS_URL_PREFIX/odoh.md \
+    $RESOLVERS_URL_PREFIX/odoh.md.minisig
+  chown nobody:nobody $TARG_DIR/public-resolvers.md $TARG_DIR/public-resolvers.md.minisig $TARG_DIR/relays.md $TARG_DIR/relays.md.minisig $TARG_DIR/odoh.md $TARG_DIR/odoh.md.minisig
   write_manager_script /jffs/scripts/dnsmasq.postconf dnsmasq
   write_manager_script /jffs/scripts/init-start init-start
   setup_dnscrypt
