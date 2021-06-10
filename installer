@@ -579,6 +579,7 @@ choose_dnscrypt_server () {
       ;;
     4)
       toml_gvar_disable disabled_server_names
+      sed -i '689,694 s/^/#/' $TOML_FILE
       choose_dnscrypt_server_odoh
       ;;
   esac
@@ -590,6 +591,7 @@ choose_dnscrypt_server_auto () {
   read_yesno "Use only servers that support the ODoH protocol (this will only use ODoH)" && USE_ODOH=TRUE || toml_gvars_prep odoh_servers false
   if [ "$USE_ODOH" = "TRUE" ]; then
     toml_gvars_prep odoh_servers true
+    sed -i '689,694 s/^/#/' $TOML_FILE
   else
     read_yesno "Use only servers that support the DNSCrypt protocol" && toml_gvars_prep dnscrypt_servers true dnscrypt_ephemeral_keys true || toml_gvars_prep dnscrypt_servers false dnscrypt_ephemeral_keys false
     read_yesno "Use only servers that support the DNS-over-HTTPS protocol" && toml_gvars_prep doh_servers true tls_disable_session_tickets true || toml_gvars_prep doh_servers false tls_disable_session_tickets false
