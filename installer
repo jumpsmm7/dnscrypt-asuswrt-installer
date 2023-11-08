@@ -16,7 +16,7 @@
 #██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗           bigeyes0x0                      #
 #██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝  Current Maintainer:                      #
 #██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██╔══╝  ██╔══██╗           SomeWhereOverTheRainBow         #
-#██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║  v2.5.0                                   #
+#██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║  v2.5.1                                   #
 #╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝                                           #
 ###################################################################################################################
 
@@ -30,7 +30,7 @@
 export LC_ALL=C
 export PATH="/sbin:/bin:/usr/sbin:/usr/bin:$PATH"
 
-DI_VERSION="v2.5.0"
+DI_VERSION="v2.5.1"
 export DI_VERSION
 
 readonly LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releases/latest"
@@ -65,18 +65,21 @@ _quote() {
 }
 
 PTXT() {
-  case "$1" in
-    -n)
-      for i in "${@:2}"; do
-        printf "%s" "$i"
-      done
-      ;;
-    *)
-      for i in "$@"; do
-        printf "%s\n" "$i"
-      done
-      ;;
-  esac
+	case "$1" in
+	-n)
+		shift
+		while [ $# -gt 0 ]; do
+			printf "%s" "$1"
+			shift
+		done
+		;;
+	*)
+		while [ $# -gt 0 ]; do
+			printf "%s\n" "$1"
+			shift
+		done
+		;;
+	esac
 }
 
 backup_restore () {
@@ -133,7 +136,7 @@ backup_restore () {
     write_manager_script /jffs/scripts/dnsmasq.postconf dnsmasq
     del_between_magic /jffs/scripts/service-event-end '# Asuswrt-Merlin-Dnscrypt-Proxy-Installer'
     write_command_script /jffs/scripts/service-event-end 'if printf "%s" "$@" | /bin/grep -qE "^(((((dnscrypt-)?(start|stop)|restart|kill))_?.*dnscrypt-proxy)$)"; then { sh /jffs/dnscrypt/manager "$(printf "%s" "$@" | /bin/grep -oE "^(((dnscrypt-)?(start|stop)|restart|kill))")" x & }; fi # Asuswrt-Merlin-Dnscrypt-Proxy-Installer'
-    if ! setup_dnscrypt; then
+    if ! setup_dnscrypt "" "$1"; then
       end_op_message 1
       return
     fi
@@ -442,7 +445,7 @@ check_version () {
       else
         PTXT "$INFO DI_VERSION=v${LINSTALL}, but a New Minor Update is Available!" \
              "$INFO Run Option 1 of the Installer to upgrade DNScrypt Asuswrt Installer."
-		AUTO_UPDATE="update"
+	AUTO_UPDATE="update"
       fi
       local LVERSION
       LVERSION="$("${TARG_DIR}/dnscrypt-proxy" -version)"
@@ -451,6 +454,7 @@ check_version () {
       if [ "$DNSCRYPT_VER" != "$LVERSION" ]; then
         PTXT "$INFO New DNSCRYPT_VER=${DNSCRYPT_VER} Available!" \
              "$INFO Run Option 1 of the Installer to upgrade DNScrypt Proxy."
+        AUTO_UPDATE="update"
       else
         PTXT "$INFO DNSCRYPT_VER=${LVERSION}"
       fi
@@ -464,6 +468,7 @@ check_version () {
         else
           PTXT "$INFO New Manager file is Available!" \
                "$INFO Run Option 1 of the Installer to upgrade the Manager File."
+          AUTO_UPDATE="update"
         fi
       fi
     elif { [ -z "$LINSTALL" ] && [ -z "$RMNSTALL" ]; } || { [ "$NW_STATE" = "0" ] && [ "$RES_STATE" != "0" ]; }; then
@@ -841,11 +846,10 @@ del_conf () {
 }
 
 del_jffs_script () {
-  local TARG LINE_NUM LINE_ABOVE
+  local TARG LINE_NUM LINE_ABOVE OP
   TARG="$1"
   [ -f "$TARG" ] || return
   if [ "$2" ]; then
-    local OP
     OP="${2:0:1}"
     if [ "$OP" = "!" ]; then
       LINE_NUM="$(grep -n -F "[ -x $TARG_DIR/" "$TARG" | grep -v "$(_quote "$2")" | cut -d':' -f1)"
@@ -897,9 +901,17 @@ download_file () {
 }
 
 end_op_message () {
-  [ "$1" = "0" ] && PTXT "$INFO Operation completed. You can quit or continue"
-  [ "$1" = "1" ] && PTXT "$INFO Operation aborted. You can quit or continue"
-  [ "$1" = "2" ] && PTXT "$INFO Abnormal operations, returning to Main Menu. You can quit or continue."
+  case "${1:-0}" in
+    0)
+      PTXT "$INFO Operation completed, returning to Main Menu. You can quit or continue."
+      ;;
+    1)
+      PTXT "$INFO Operation aborted, returning to Main Menu. You can quit or continue."
+      ;;
+    2)
+      PTXT "$INFO Abnormal operations, returning to Main Menu. You can quit or continue."
+      ;;
+  esac
   PTXT "====================================================="
   PTXT " "
   PTXT " "
@@ -916,7 +928,7 @@ inst_dnscrypt () {
   DNSCRYPT_TAR=dnscrypt-proxy-${DNSCRYPT_ARCH}-${DNSCRYPT_VER}.tar.gz
   RESOLVERS_URL_PREFIX="https://download.dnscrypt.info/resolvers-list/v3/"
   CRYPT_RESOLVERS="https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v1/"
-  if [ -z "$1" ]; then
+  if [ "${1:-install}" = "install" ]; then
     if [ ! -d "$TARG_DIR" ] && [ -f "${BASE_DIR}/backup_dnscrypt.tar.gz" ]; then
       PTXT "$INFO Backup is detected."
       local USE_OLD
@@ -1017,7 +1029,7 @@ inst_dnscrypt () {
   write_manager_script /jffs/scripts/dnsmasq.postconf dnsmasq
   del_between_magic /jffs/scripts/service-event-end '# Asuswrt-Merlin-Dnscrypt-Proxy-Installer'
   write_command_script /jffs/scripts/service-event-end 'if printf "%s" "$@" | /bin/grep -qE "^(((((dnscrypt-)?(start|stop)|restart|kill))_?.*dnscrypt-proxy)$)"; then { sh /jffs/dnscrypt/manager "$(printf "%s" "$@" | /bin/grep -oE "^(((dnscrypt-)?(start|stop)|restart|kill))")" x & }; fi # Asuswrt-Merlin-Dnscrypt-Proxy-Installer'
-  if ! setup_dnscrypt; then
+  if ! setup_dnscrypt "" "${1:-install}"; then
     end_op_message 1
     return
   fi
@@ -1403,39 +1415,43 @@ setup_dnscrypt_impl () {
     else
       cp -f "$TOML_ORI" "$TOML_FILE"
     fi
-    if read_yesno "Do you want to redirect all DNS resolutions on your network through to Dnscrypt-Proxy?"; then check_dns_filter 1; else check_dns_filter 0; fi
-    if [ "$(nvram get dns_local_cache)" != "1" ]; then { if read_yesno "Do you want to run Dnsmasq as a local caching DNS service which includes sending the routers traffic to Dnscrypt-Proxy?"; then check_dns_local 1; else check_dns_local 0; fi; }; else { check_dns_local 0; }; fi
-    toml_avar_enable disabled_server_names
-    local PHX NXT
-    PHX="$(grep -wn "sources.odoh-servers" "$TOML_FILE" | cut -f1 -d:)"
-    NXT="$((PHX+11))"
-    sed -i "$PHX,$NXT s/#//g" "$TOML_FILE"
-    choose_dnscrypt_server
-    PTXT "$INFO Evaluating the possibilities for other dnscrypt-proxy configurations such as relay support..."
-    check_relays
-    PTXT "$INFO Set the DNS server(s) for initializing dnscrypt-proxy" \
-         "$INFO and router services (e.g. ntp) at boot"
-    read_input_dns "Default is" 9.9.9.9
-    read_input_dns "2nd Default is" 8.8.8.8
-    read_input_num "Set log level, default is 2, 0 is the most verbose" 0 6
-    toml_nvars_replace "fallback_resolvers =" "bootstrap_resolvers = [$BOOTSTRAP2]" "$TOML_FILE"
-    if read_yesno "Do you want to use TLSv1.3 (http3)?"; then toml_avar_disable tls_cipher_suite; toml_avars_prep http3 true; else toml_avar_enable tls_cipher_suite; toml_avars_prep http3 false tls_cipher_suite "\"[52393, 52392, 49199, 49195, 4867, 4865]\""; fi
-    toml_avars_prep bootstrap_resolvers "\"[$BOOTSTRAP2]\"" log_level "$CHOSEN" ignore_system_dns true listen_addresses "[\'127.0.1.1:53\']" cache false cert_ignore_timestamp true max_clients 25000 keepalive 120 netprobe_timeout 120 netprobe_address "\'$PROBE\'" tls_disable_session_tickets true dnscrypt_ephemeral_keys true
-    case "$ROUTER_MODEL" in
-      RT-AX56U|RT-AX58U|RT-AX3000)
-        toml_avar_disable user_name
-      ;;
-      *)
-        toml_avars_prep user_name "\'nobody\'"
+    case "${2:-reconfig}" in
+      "install"|"reconfig")
+        if read_yesno "Do you want to redirect all DNS resolutions on your network through to Dnscrypt-Proxy?"; then check_dns_filter 1; else check_dns_filter 0; fi
+        if [ "$(nvram get dns_local_cache)" != "1" ]; then { if read_yesno "Do you want to run Dnsmasq as a local caching DNS service which includes sending the routers traffic to Dnscrypt-Proxy?"; then check_dns_local 1; else check_dns_local 0; fi; }; else { check_dns_local 0; }; fi
+        toml_avar_enable disabled_server_names
+        local PHX NXT
+        PHX="$(grep -wn "sources.odoh-servers" "$TOML_FILE" | cut -f1 -d:)"
+        NXT="$((PHX+11))"
+        sed -i "$PHX,$NXT s/#//g" "$TOML_FILE"
+        choose_dnscrypt_server
+        PTXT "$INFO Evaluating the possibilities for other dnscrypt-proxy configurations such as relay support..."
+        check_relays
+        PTXT "$INFO Set the DNS server(s) for initializing dnscrypt-proxy" \
+             "$INFO and router services (e.g. ntp) at boot"
+        read_input_dns "Default is" 9.9.9.9
+        read_input_dns "2nd Default is" 8.8.8.8
+        read_input_num "Set log level, default is 2, 0 is the most verbose" 0 6
+        toml_nvars_replace "fallback_resolvers =" "bootstrap_resolvers = [$BOOTSTRAP2]" "$TOML_FILE"
+        if read_yesno "Do you want to use TLSv1.3 (http3)?"; then toml_avar_disable tls_cipher_suite; toml_avars_prep http3 true; else toml_avar_enable tls_cipher_suite; toml_avars_prep http3 false tls_cipher_suite "\"[52393, 52392, 49199, 49195, 4867, 4865]\""; fi
+        toml_avars_prep bootstrap_resolvers "\"[$BOOTSTRAP2]\"" log_level "$CHOSEN" ignore_system_dns true listen_addresses "[\'127.0.1.1:53\']" cache false cert_ignore_timestamp true max_clients 25000 keepalive 120 netprobe_timeout 120 netprobe_address "\'$PROBE\'" tls_disable_session_tickets true dnscrypt_ephemeral_keys true
+        case "$ROUTER_MODEL" in
+          RT-AX56U|RT-AX58U|RT-AX3000)
+            toml_avar_disable user_name
+          ;;
+          *)
+            toml_avars_prep user_name "\'nobody\'"
+          ;;
+        esac
+        PTXT "$INFO Writing dnscrypt-proxy configuration..."
+        if ! check_dnscrypt_toml; then
+          PTXT "$INFO Writing dnscrypt-proxy configuration failed " \
+               "$INFO Please send $TOML_ERR file and screen log of " \
+               "$INFO all operations you have made to this script dev"
+          return 1
+        fi
       ;;
     esac
-    PTXT "$INFO Writing dnscrypt-proxy configuration..."
-    if ! check_dnscrypt_toml; then
-      PTXT "$INFO Writing dnscrypt-proxy configuration failed " \
-           "$INFO Please send $TOML_ERR file and screen log of " \
-           "$INFO all operations you have made to this script dev"
-      return 1
-    fi
   fi
 }
 
@@ -1723,8 +1739,28 @@ case "$ROUTER_ARCH" in
 esac
 
 case "$2" in
-  "update")
-    inst_dnscrypt "$2"
+  "install"|"update")
+    if [ ! -d "$TARG_DIR" ]; then exit 1; else inst_dnscrypt "$2"; fi
+    ;;
+  "uninstall")
+    if [ ! -d "$TARG_DIR" ]; then exit 1; fi
+    case "${3:-all}" in
+      all)
+        uninst_all
+        ;;
+      proxy)
+        uninst_dnscrypt
+        ;;
+      rng)
+        uninst_random
+        ;;
+    esac
+    ;;
+  "set"|"unset")
+    if [ ! -d "$TARG_DIR" ]; then exit 1; else "$2"_timezone; fi
+    ;;
+  "BACKUP"|"RESTORE")
+    if { [ -d "$TARG_DIR" ] && [ -f "${TARG_DIR}/dnscrypt-proxy" ]; }; then backup_restore "$2"; fi
     ;;
   *)
     cleanup
