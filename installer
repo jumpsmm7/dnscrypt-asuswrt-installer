@@ -1902,7 +1902,8 @@ esac
 
 case "$2" in
 "install" | "update")
-	if [ ! -d "$TARG_DIR" ] && [ "$2" = "update" ]; then exit 1; else inst_dnscrypt "$2"; fi
+	if [ ! -d "$TARG_DIR" ] && [ "$2" = "update" ]; then exit 1; fi
+	inst_dnscrypt "$2"
 	;;
 "uninstall")
 	if [ ! -d "$TARG_DIR" ]; then exit 1; fi
@@ -1919,10 +1920,13 @@ case "$2" in
 	esac
 	;;
 "set" | "unset")
-	if [ ! -d "$TARG_DIR" ]; then exit 1; else "$2"_timezone; fi
+	if [ ! -d "$TARG_DIR" ]; then exit 1; fi
+	${2}_timezone
 	;;
 "BACKUP" | "RESTORE")
-	if { [ -d "$TARG_DIR" ] && [ -f "${TARG_DIR}/dnscrypt-proxy" ]; }; then backup_restore "$2"; fi
+	if { [ ! -d "$TARG_DIR" ] && [ ! -f "${TARG_DIR}/dnscrypt-proxy" ] && [ "$2" = "BACKUP" ]; }; then exit 1; fi
+	if { [ ! -f "${BASE_DIR}/backup_dnscrypt.tar.gz" ] && [ "$2" = "RESTORE" ]; }; then exit 1; fi 
+	backup_restore "$2"
 	;;
 *)
 	cleanup
