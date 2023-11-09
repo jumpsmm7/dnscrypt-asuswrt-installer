@@ -1740,7 +1740,7 @@ esac
 
 case "$2" in
   "install"|"update")
-    if [ ! -d "$TARG_DIR" ]; then exit 1; else inst_dnscrypt "$2"; fi
+    if [ ! -d "$TARG_DIR" ] && [ "$2" = "update" ]; then exit 1; else inst_dnscrypt "$2"; fi
     ;;
   "uninstall")
     if [ ! -d "$TARG_DIR" ]; then exit 1; fi
