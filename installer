@@ -1835,8 +1835,8 @@ URL_GEN="${RURL}/gen"
 ROUTER_OS="$(uname)"
 ROUTER_ARCH="$(uname -m)"
 
-[ -z "${ROUTER_MODEL}" ] && PTXT "${ERROR} This is an unsupported router, sorry." && sleep 3 && exit 1
-[ "$(nvram get sw_mode)" != "1" ] && PTXT "${ERROR} You are not running in router mode, sorry." && sleep 3 && exit 1
+[ -z "${ROUTER_MODEL}" ] && PTXT "${ERROR} This is an unsupported router, sorry." && sleep 3s && exit 1
+[ "$(nvram get sw_mode)" != "1" ] && PTXT "${ERROR} You are not running in router mode, sorry." && sleep 3s && exit 1
 
 if [ -z "$2" ]; then
 	printf '\e[8;50;125t'
