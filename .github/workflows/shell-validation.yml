@@ -106,9 +106,16 @@ jobs:
           target_branch="${{ github.event.pull_request.head.ref }}"
           original_sha="${{ github.event.pull_request.head.sha }}"
 
+          mapfile -t md5_files < <(find . -name '*.md5sum' -type f -print | sed 's#^./##' | sort)
+
+          if [ "${#md5_files[@]}" -eq 0 ]; then
+            echo "No md5sum files found."
+            exit 0
+          fi
+
           busybox ash tools/update-md5.sh
 
-          if git diff --quiet -- '*.md5sum'; then
+          if git diff --quiet -- "${md5_files[@]}"; then
             echo "MD5 files are already current on the checked-out PR head."
             git reset --hard
             exit 0
