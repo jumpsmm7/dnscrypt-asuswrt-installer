@@ -77,12 +77,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          if git diff --quiet -- '*.md5sum'; then
+          mapfile -t md5_files < <(find . -name '*.md5sum' -type f -print | sed 's#^./##' | sort)
+
+          if [ "${#md5_files[@]}" -eq 0 ]; then
+            echo "No md5sum files found."
+            exit 0
+          fi
+
+          if git diff --quiet -- "${md5_files[@]}"; then
             echo "No md5sum updates needed."
             exit 0
           fi
 
           git status --short
-          git add '*.md5sum'
+          git add -- "${md5_files[@]}"
           git commit -m "chore: update md5sum files"
           git push origin HEAD:${{ steps.branch.outputs.target }}
