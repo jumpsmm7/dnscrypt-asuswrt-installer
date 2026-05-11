@@ -269,7 +269,7 @@ dnscrypt_stop() {
 		fi
 	fi
 	sleep 1s
-	dnscrypt_wait_stopped || return 1
+	dnscrypt_wait_stopped "${DNSCRYPT_WAIT_TIMEOUT}" || return 1
 }
 
 dnscrypt_start() {
@@ -283,7 +283,7 @@ dnscrypt_start() {
 		fi
 	fi
 	sleep 1s
-	dnscrypt_wait_started || return 1
+	dnscrypt_wait_started "${DNSCRYPT_WAIT_TIMEOUT}" || return 1
 	dnscrypt_is_running
 }
 
@@ -300,7 +300,7 @@ dnscrypt_restart() {
 		dnscrypt_start || return 1
 	fi
 	sleep 1s
-	dnscrypt_wait_ready || return 1
+	dnscrypt_wait_ready "${DNSCRYPT_READY_TIMEOUT}" || return 1
 	dnscrypt_is_running
 }
 
