@@ -1244,6 +1244,22 @@ read_conf() {
 	' "${CONF_FILE}"
 }
 
+sanitize_branch() {
+	local BRANCH_VALUE
+	BRANCH_VALUE="$1"
+	case "${BRANCH_VALUE}" in
+		"" | /* | */ | *..* | *//*)
+			PTXT "${ERROR} Invalid installer branch or tag: ${BRANCH_VALUE}"
+			exit 1
+			;;
+		*[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._/-]*)
+			PTXT "${ERROR} Installer branch or tag contains unsupported characters: ${BRANCH_VALUE}"
+			exit 1
+			;;
+	esac
+	printf '%s\n' "${BRANCH_VALUE}"
+}
+
 del_jffs_script() {
 	local TARG LINE_NUM LINE_ABOVE OP
 	TARG="$1"
@@ -2158,6 +2174,7 @@ case "${BRANCH}" in
 		unset BRANCH
 		BRANCH="$(read_conf INSTALLER_BRANCH)"
 		[ -n "${BRANCH}" ] || BRANCH="master"
+		BRANCH="$(sanitize_branch "${BRANCH}")"
 		case "$2" in
 			"check")
 				AMTM_UPDATE="$(read_conf AMTM_UPDATE)"
@@ -2174,6 +2191,7 @@ case "${BRANCH}" in
 		esac
 		;;
 	*)
+		BRANCH="$(sanitize_branch "${BRANCH}")"
 		write_conf INSTALLER_BRANCH "\"${BRANCH}\""
 		;;
 esac
