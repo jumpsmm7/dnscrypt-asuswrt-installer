@@ -1,6 +1,8 @@
-# Asuswrt-Merlin Dnscrypt-Proxy-Installer
+<p align="center">
+  <a href="https://ibb.co/82v4nFh"><img src="https://i.ibb.co/ft6GVmc/image.png" alt="Asuswrt-Merlin Dnscrypt-Proxy Installer" border="0"></a>
+</p>
 
-[![Asuswrt-Merlin Dnscrypt-Proxy-Installer banner](https://i.ibb.co/ft6GVmc/image.png)](https://ibb.co/82v4nFh)
+# Asuswrt-Merlin Dnscrypt-Proxy Installer
 
 Install, update, reconfigure, and remove [dnscrypt-proxy v2](https://github.com/jedisct1/dnscrypt-proxy) on supported ASUS routers running Asuswrt-Merlin firmware. The installer handles the router-specific setup work that is usually required when installing through Entware or similar package managers, including startup scripts and the boot-time NTP timestamp issue.
 
@@ -140,13 +142,16 @@ If CI reports `shfmt` formatting differences, you can also run the `Create shfmt
 
 Pull requests that change shell scripts, checksum files, tools, prompts, or workflows are also reviewed by the Codex Code Improvement workflow when the repository has an `OPENAI_API_KEY` Actions secret configured. The Codex prompt includes the local code-quality output so formatting failures can be reported with the same remediation steps shown in CI.
 
-## How this installer is built
+## Project notes
 
-- dnscrypt-proxy binaries come from [jedisct1/dnscrypt-proxy](https://github.com/jedisct1/dnscrypt-proxy).
+- Dnscrypt-Proxy binaries come from [jedisct1/dnscrypt-proxy](https://github.com/jedisct1/dnscrypt-proxy).
 - Required helper binaries are compiled and stripped with the Asuswrt-Merlin firmware build toolchain.
 - The installer script was inspired by `entware-setup.sh` from Asuswrt-Merlin.
 - Project source is available in this repository: <https://github.com/thuantran/dnscrypt-asuswrt-installer>.
+- License:[GPL-3.0 License](https://raw.githubusercontent.com/thuantran/dnscrypt-asuswrt-installer/master/LICENSE)
 
 ## Donate
 
-This project is open source and free to use under the [GPL-3.0 License](https://raw.githubusercontent.com/thuantran/dnscrypt-asuswrt-installer/master/LICENSE). If you want to support future development, you can donate through [PayPal](https://paypal.me/swotrb) or [Buy Me a Coffee](https://www.buymeacoffee.com/swotrb).
+This project is open source and free to use under the GPL-3.0 license. If you want to support future development, you can donate through:
+- [PayPal](https://paypal.me/swotrb)
+- [Buy Me a Coffee](https://www.buymeacoffee.com/swotrb)
