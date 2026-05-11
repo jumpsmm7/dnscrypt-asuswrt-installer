@@ -28,6 +28,8 @@ export DI_VERSION
 readonly API_FILE="/tmp/DI_GIT_API_$$.json"
 readonly API_HEADERS="/tmp/DI_GIT_API_$$_headers.out"
 readonly LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releases/latest"
+readonly DNSCRYPT_WAIT_TIMEOUT="60"
+readonly DNSCRYPT_READY_TIMEOUT="180"
 
 di_have_cmd() {
 	which "$1" >/dev/null 2>&1
@@ -200,6 +202,17 @@ PTXT() {
 	esac
 }
 
+kill_processes() {
+	local PID PIDS PROCESS
+	for PROCESS in "$@"; do
+		PIDS="$(pidof "${PROCESS}" 2>/dev/null)"
+		for PID in ${PIDS}; do
+			kill -s 9 "${PID}" 2>/dev/null
+		done
+	done
+	killall -q -9 "$@" 2>/dev/null
+}
+
 dnscrypt_is_running() {
 	[ -n "$(pidof dnscrypt-proxy)" ]
 }
@@ -209,15 +222,39 @@ dnscrypt_process_count() {
 }
 
 dnscrypt_wait_stopped() {
-	until [ "$(dnscrypt_process_count)" -lt "1" ]; do sleep 1s; done
+	local elapsed maxwait
+	elapsed="0"
+	maxwait="${1:-${DNSCRYPT_WAIT_TIMEOUT}}"
+	while [ "$(dnscrypt_process_count)" -ge "1" ]; do
+		if [ "${elapsed}" -ge "${maxwait}" ]; then return 1; fi
+		sleep 1s
+		elapsed="$((elapsed + 1))"
+	done
+	return 0
 }
 
 dnscrypt_wait_started() {
-	until dnscrypt_is_running; do sleep 1s; done
+	local elapsed maxwait
+	elapsed="0"
+	maxwait="${1:-${DNSCRYPT_WAIT_TIMEOUT}}"
+	while ! dnscrypt_is_running; do
+		if [ "${elapsed}" -ge "${maxwait}" ]; then return 1; fi
+		sleep 1s
+		elapsed="$((elapsed + 1))"
+	done
+	return 0
 }
 
 dnscrypt_wait_ready() {
-	until { check_connection && dnscrypt_is_running; }; do sleep 1s; done
+	local elapsed maxwait
+	elapsed="0"
+	maxwait="${1:-${DNSCRYPT_READY_TIMEOUT}}"
+	while ! { check_connection && dnscrypt_is_running; }; do
+		if [ "${elapsed}" -ge "${maxwait}" ]; then return 1; fi
+		sleep 1s
+		elapsed="$((elapsed + 1))"
+	done
+	return 0
 }
 
 dnscrypt_stop() {
@@ -227,12 +264,12 @@ dnscrypt_stop() {
 		elif [ -x "${TARG_DIR}/manager" ] && "${TARG_DIR}/manager" stop x >/dev/null 2>&1; then
 			sleep 1s
 		else
-			killall -q -9 dnscrypt-proxy 2>/dev/null
+			kill_processes dnscrypt-proxy
 			sleep 1s
 		fi
 	fi
 	sleep 1s
-	dnscrypt_wait_stopped
+	dnscrypt_wait_stopped || return 1
 }
 
 dnscrypt_start() {
@@ -246,7 +283,7 @@ dnscrypt_start() {
 		fi
 	fi
 	sleep 1s
-	dnscrypt_wait_started
+	dnscrypt_wait_started || return 1
 	dnscrypt_is_running
 }
 
@@ -263,7 +300,7 @@ dnscrypt_restart() {
 		dnscrypt_start || return 1
 	fi
 	sleep 1s
-	dnscrypt_wait_ready
+	dnscrypt_wait_ready || return 1
 	dnscrypt_is_running
 }
 
@@ -373,7 +410,7 @@ check_dns_environment() {
 		NVCHECK="$((NVCHECK + 1))"
 	fi
 	if [ "$(pidof stubby)" ]; then
-		{ killall -q -9 stubby 2>/dev/null; }
+		{ kill_processes stubby; }
 		NVCHECK="$((NVCHECK + 1))"
 	fi
 	if [ "$(nvram get dhcp_dns1_x)" ] && [ "${NVCHECK}" != "0" ]; then
@@ -552,8 +589,8 @@ check_opendns() {
 	if grep -q '^server_names = .*cisco.*' "${TOML_FILE}"; then
 		if [ -f "${CONF_FILE}" ]; then
 			local OPENDNS_USER OPENDNS_PASSWORD
-			OPENDNS_USER="$(awk -F'=' '/OPENDNS_USER/ {print $2}' "${CONF_FILE}")"
-			OPENDNS_PASSWORD="$(awk -F'=' '/OPENDNS_PASSWORD/ {print $2}' "${CONF_FILE}")"
+			OPENDNS_USER="$(read_conf OPENDNS_USER)"
+			OPENDNS_PASSWORD="$(read_conf OPENDNS_PASSWORD)"
 			if [ "${OPENDNS_USER}" ] && [ "${OPENDNS_PASSWORD}" ]; then
 				PTXT "${INFO} Found OpenDNS account ${BOLD}${OPENDNS_USER}" \
 					"${INFO} What do you want to do:" \
@@ -1160,6 +1197,18 @@ del_conf() {
 	done
 }
 
+read_conf() {
+	[ -f "${CONF_FILE}" ] || return 1
+	awk -v KEY="$1" '
+		index($0, KEY "=") == 1 {
+			VALUE = substr($0, length(KEY) + 2)
+			gsub(/^"|"$/, "", VALUE)
+			print VALUE
+			exit
+		}
+	' "${CONF_FILE}"
+}
+
 del_jffs_script() {
 	local TARG LINE_NUM LINE_ABOVE OP
 	TARG="$1"
@@ -1444,14 +1493,14 @@ inst_random() {
 	case "${CHOSEN}" in
 		1)
 			rm -f "${TARG_DIR}/rngd" "${TARG_DIR}/stty"
-			{ kill -s 9 "$(pidof haveged jitterentropy-rngd rngd stty)" 2>/dev/null || killall -q -9 haveged jitterentropy-rngd rngd stty 2>/dev/null; }
+			{ kill_processes haveged jitterentropy-rngd rngd stty; }
 			download_file "${TARG_DIR}" 755 "${URL_ARCH}/haveged" "${URL_GEN}/manager"
 			write_conf RAN_PRV haveged
 			${TARG_DIR}/haveged -w 1024 -d 32 -i 32 -v 1
 			;;
 		2)
 			local RNG_DEV
-			{ kill -s 9 "$(pidof haveged jitterentropy-rngd rngd stty)" 2>/dev/null || killall -q -9 haveged jitterentropy-rngd rngd stty 2>/dev/null; }
+			{ kill_processes haveged jitterentropy-rngd rngd stty; }
 			download_file "$TARG_DIR" 755 "${URL_ARCH}/haveged" "${URL_ARCH}/rngd" "${URL_ARCH}/stty" "${URL_GEN}/manager"
 			inst_ran_dev || return
 			write_conf RAN_PRV rngd
@@ -1711,8 +1760,9 @@ static_chosen_relays() {
 }
 
 setup_amtmupdate() {
-	local AMTM_UPDATE
-	if [ ! -f "${CONF_FILE}" ] || [ -z "$(awk -F'=' '/AMTM_UPDATE/ {print $2}' "${CONF_FILE}" | sed -e 's/^"//' -e 's/"$//')" ] || { [ -f "${CONF_FILE}" ] && [ "$(awk -F'=' '/AMTM_UPDATE/ {print $2}' "${CONF_FILE}" | sed -e 's/^"//' -e 's/"$//')" = "DISABLED" ]; }; then
+	local AMTM_UPDATE CURRENT_AMTM_UPDATE
+	CURRENT_AMTM_UPDATE="$(read_conf AMTM_UPDATE)"
+	if [ -z "${CURRENT_AMTM_UPDATE}" ] || [ "${CURRENT_AMTM_UPDATE}" = "DISABLED" ]; then
 		AMTM_UPDATE="ENABLED"
 	else
 		AMTM_UPDATE="DISABLED"
@@ -1952,7 +2002,7 @@ uninst_all() {
 	if nvram get rc_support | grep -q 'mtlancfg'; then del_jffs_script /jffs/scripts/dnsmasq-sdn.postconf; fi
 	del_jffs_script /jffs/scripts/init-start
 	del_jffs_script /jffs/scripts/services-stop
-	{ kill -s 9 "$(pidof haveged rngd stty dnscrypt-proxy)" 2>/dev/null || killall -q -9 haveged rngd stty dnscrypt-proxy 2>/dev/null; }
+	{ kill_processes haveged rngd stty dnscrypt-proxy; }
 	del_between_magic /jffs/scripts/service-event-end '# Asuswrt-Merlin-Dnscrypt-Proxy-Installer'
 	local MAN_PID PID
 	MAN_PID="$(pidof manager)"
@@ -1974,7 +2024,7 @@ uninst_dnscrypt() {
 	rm -f "${TARG_DIR}/dnscrypt-proxy" "${TARG_DIR}/nonroot"
 	del_jffs_script /jffs/scripts/dnsmasq.postconf
 	if nvram get rc_support | grep -q 'mtlancfg'; then del_jffs_script /jffs/scripts/dnsmasq-sdn.postconf; fi
-	{ kill -s 9 "$(pidof dnscrypt-proxy)" 2>/dev/null || killall -q -9 dnscrypt-proxy 2>/dev/null; }
+	{ kill_processes dnscrypt-proxy; }
 	service restart_dnsmasq >/dev/null 2>&1
 	PTXT "${INFO} Some configuration files are not removed in case you want to reinstall"
 	end_op_message 0
@@ -1983,7 +2033,7 @@ uninst_dnscrypt() {
 uninst_random() {
 	PTXT "${INFO} Uninstalling (P)RNG..."
 	rm -f "${TARG_DIR}/haveged" "${TARG_DIR}/rngd" "${TARG_DIR}/stty"
-	{ kill -s 9 "$(pidof haveged rngd stty)" 2>/dev/null || killall -q -9 haveged rngd stty 2>/dev/null; }
+	{ kill_processes haveged rngd stty; }
 	del_conf RAN_PRV RNG_DEV
 	if [ ! -f "${TARG_DIR}/localtime" ] && [ ! -f "${TARG_DIR}/dnscrypt-proxy" ]; then
 		del_jffs_script /jffs/scripts/init-start
@@ -1994,7 +2044,7 @@ uninst_random() {
 
 unset_timezone() {
 	rm -f "${TARG_DIR}/localtime"
-	if ! grep -q "^RAN_PRV=.*$" "${TARG_DIR}/.config" && [ ! -f "${TARG_DIR}/dnscrypt-proxy" ]; then
+	if [ -z "$(read_conf RAN_PRV)" ] && [ ! -f "${TARG_DIR}/dnscrypt-proxy" ]; then
 		del_jffs_script /jffs/scripts/init-start
 		del_jffs_script /jffs/scripts/services-stop
 	fi
@@ -2010,9 +2060,12 @@ write_conf() {
 		chmod 644 "${CONF_FILE}"
 	fi
 	if [ ! -f "${CONF_FILE}" ]; then
-		touch "${CONF_FILE}" && chmod 644 "${CONF_FILE}"
+		if ! { touch "${CONF_FILE}" && chmod 644 "${CONF_FILE}"; }; then
+			PTXT "${ERROR} Unable to create ${CONF_FILE}"
+			return 1
+		fi
 	fi
-	if grep -q "${VAR}" "${CONF_FILE}"; then
+	if grep -q "^${VAR}=" "${CONF_FILE}"; then
 		VALUE=$(_quote "${VALUE}")
 		sed -i "/^${VAR}=/s/=.*/=${VALUE}/" "${CONF_FILE}"
 	else
@@ -2068,12 +2121,14 @@ write_manager_script() {
 case "${BRANCH}" in
 	"amtmupdate")
 		unset BRANCH
-		[ "$(awk -F'=' '/INSTALLER_BRANCH/ {print $2}' "${CONF_FILE}" | sed -e 's/^"//' -e 's/"$//')" ] && BRANCH="$(awk -F'=' '/INSTALLER_BRANCH/ {print $2}' "${CONF_FILE}" | sed -e 's/^"//' -e 's/"$//')" || BRANCH="master"
+		BRANCH="$(read_conf INSTALLER_BRANCH)"
+		[ -n "${BRANCH}" ] || BRANCH="master"
 		case "$2" in
 			"check")
-				if [ ! -f "${CONF_FILE}" ] || [ "$(awk -F'=' '/AMTM_UPDATE/ {print $2}' "${CONF_FILE}" | sed -e 's/^"//' -e 's/"$//')" = "DISABLED" ]; then
+				AMTM_UPDATE="$(read_conf AMTM_UPDATE)"
+				if [ "${AMTM_UPDATE}" = "DISABLED" ] || [ -z "${AMTM_UPDATE}" ]; then
 					exit 1
-				elif [ "$(awk -F'=' '/AMTM_UPDATE/ {print $2}' "${CONF_FILE}" | sed -e 's/^"//' -e 's/"$//')" = "ENABLED" ]; then
+				elif [ "${AMTM_UPDATE}" = "ENABLED" ]; then
 					exit 0
 				fi
 				;;
