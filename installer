@@ -1244,20 +1244,24 @@ read_conf() {
 	' "${CONF_FILE}"
 }
 
-sanitize_branch() {
-	local BRANCH_VALUE
-	BRANCH_VALUE="$1"
-	case "${BRANCH_VALUE}" in
-		"" | /* | */ | *..* | *//*)
-			PTXT "${ERROR} Invalid installer branch or tag: ${BRANCH_VALUE}"
-			exit 1
-			;;
-		*[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._/-]*)
-			PTXT "${ERROR} Installer branch or tag contains unsupported characters: ${BRANCH_VALUE}"
-			exit 1
+branch_is_safe() {
+	case "$1" in
+		"" | /* | */ | *..* | *//* | *\* | *[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._/-]*)
+			return 1
 			;;
 	esac
-	printf '%s\n' "${BRANCH_VALUE}"
+	return 0
+}
+
+sanitize_branch() {
+	local CANDIDATE
+	CANDIDATE="$1"
+	if branch_is_safe "${CANDIDATE}"; then
+		printf '%s\n' "${CANDIDATE}"
+	else
+		printf '%s\n' "${WARNING} Ignoring unsafe installer branch '${CANDIDATE}', using master instead." >&2
+		printf '%s\n' "master"
+	fi
 }
 
 del_jffs_script() {
