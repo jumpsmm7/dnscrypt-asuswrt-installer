@@ -1,6 +1,6 @@
-# Asuswrt-Merlin-Dnscrypt-Proxy-Installer
+# Asuswrt-Merlin Dnscrypt-Proxy-Installer
 
-[![Asuswrt-Merlin-Dnscrypt-Proxy-Installer banner](https://i.ibb.co/ft6GVmc/image.png)](https://ibb.co/82v4nFh)
+[![Asuswrt-Merlin Dnscrypt-Proxy-Installer banner](https://i.ibb.co/ft6GVmc/image.png)](https://ibb.co/82v4nFh)
 
 Install, update, reconfigure, and remove [dnscrypt-proxy v2](https://github.com/jedisct1/dnscrypt-proxy) on supported ASUS routers running Asuswrt-Merlin firmware. The installer handles the router-specific setup work that is usually required when installing through Entware or similar package managers, including startup scripts and the boot-time NTP timestamp issue.
 
@@ -58,19 +58,13 @@ curl -L -s -k -O https://raw.githubusercontent.com/thuantran/dnscrypt-asuswrt-in
 Recommended service commands:
 
 ```sh
-service start_dnscrypt-proxy
-service stop_dnscrypt-proxy
-service restart_dnscrypt-proxy
-service kill_dnscrypt-proxy
+service {start|stop|restart|kill}_dnscrypt-proxy
 ```
 
 The manager script also supports equivalent commands:
 
 ```sh
-/jffs/dnscrypt/manager start
-/jffs/dnscrypt/manager stop
-/jffs/dnscrypt/manager restart
-/jffs/dnscrypt/manager kill
+/jffs/dnscrypt/manager {start|stop|restart|kill}
 ```
 
 ## Verify that dnscrypt-proxy is running
