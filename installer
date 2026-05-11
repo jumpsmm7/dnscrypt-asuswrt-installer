@@ -31,8 +31,48 @@ readonly LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releas
 readonly DNSCRYPT_WAIT_TIMEOUT="60"
 readonly DNSCRYPT_READY_TIMEOUT="180"
 
+cleanup_api_files() {
+	rm -f "${API_FILE}" "${API_HEADERS}"
+}
+
+trap cleanup_api_files EXIT
+
 di_have_cmd() {
 	which "$1" >/dev/null 2>&1
+}
+
+curl_help() {
+	if [ -z "${CURL_HELP_CACHE_SET:-}" ]; then
+		CURL_HELP_CACHE="$(curl --help all 2>&1; curl --help 2>&1)"
+		CURL_HELP_CACHE_SET="1"
+	fi
+	printf '%s\n' "${CURL_HELP_CACHE}"
+}
+
+curl_has_option() {
+	curl_help | grep -q -e "$1"
+}
+
+curl_common_args() {
+	if [ -z "${CURL_COMMON_ARGS_SET:-}" ]; then
+		CURL_COMMON_ARGS="-f -sL"
+		curl_has_option '--retry ' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --retry 5"
+		curl_has_option '--connect-timeout' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --connect-timeout 25"
+		curl_has_option '--retry-delay' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --retry-delay 5"
+		curl_has_option '--max-time' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --max-time $((5 * 25))"
+		curl_has_option '--retry-connrefused' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --retry-connrefused"
+		CURL_COMMON_ARGS_SET="1"
+	fi
+	printf '%s' "${CURL_COMMON_ARGS}"
+}
+
+curl_insecure_arg() {
+	if [ -z "${CURL_INSECURE_ARG_SET:-}" ]; then
+		CURL_INSECURE_ARG=""
+		curl_has_option '--insecure' && CURL_INSECURE_ARG=" -k"
+		CURL_INSECURE_ARG_SET="1"
+	fi
+	printf '%s' "${CURL_INSECURE_ARG}"
 }
 
 wget_help() {
@@ -71,22 +111,18 @@ wget_insecure_arg() {
 }
 
 http_get_file() {
-	local URL OUT HEADERS INSECURE WGET_ARGS
+	local URL OUT HEADERS INSECURE CURL_ARGS WGET_ARGS
 	URL="$1"
 	OUT="$2"
 	HEADERS="${3:-}"
 	INSECURE="${4:-}"
 	if di_have_cmd curl; then
+		CURL_ARGS="$(curl_common_args)"
+		[ "${INSECURE}" = "insecure" ] && CURL_ARGS="${CURL_ARGS}$(curl_insecure_arg)"
 		if [ -n "${HEADERS}" ]; then
-			if [ "${INSECURE}" = "insecure" ]; then
-				curl -D "${HEADERS}" --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -k -sL "${URL}" -o "${OUT}"
-			else
-				curl -D "${HEADERS}" --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -sL "${URL}" -o "${OUT}"
-			fi
-		elif [ "${INSECURE}" = "insecure" ]; then
-			curl --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -k -sL "${URL}" -o "${OUT}"
+			curl -D "${HEADERS}" ${CURL_ARGS} "${URL}" -o "${OUT}"
 		else
-			curl --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -sL "${URL}" -o "${OUT}"
+			curl ${CURL_ARGS} "${URL}" -o "${OUT}"
 		fi
 	elif di_have_cmd wget; then
 		WGET_ARGS="$(wget_common_args)"
@@ -103,15 +139,13 @@ http_get_file() {
 }
 
 http_get_stdout() {
-	local URL INSECURE WGET_ARGS
+	local URL INSECURE CURL_ARGS WGET_ARGS
 	URL="$1"
 	INSECURE="${2:-}"
 	if di_have_cmd curl; then
-		if [ "${INSECURE}" = "insecure" ]; then
-			curl --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -k -sL "${URL}"
-		else
-			curl --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -sL "${URL}"
-		fi
+		CURL_ARGS="$(curl_common_args)"
+		[ "${INSECURE}" = "insecure" ] && CURL_ARGS="${CURL_ARGS}$(curl_insecure_arg)"
+		curl ${CURL_ARGS} "${URL}"
 	elif di_have_cmd wget; then
 		WGET_ARGS="$(wget_common_args)"
 		[ "${INSECURE}" = "insecure" ] && WGET_ARGS="${WGET_ARGS}$(wget_insecure_arg)"
@@ -122,10 +156,11 @@ http_get_stdout() {
 }
 
 http_probe() {
-	local URL WGET_ARGS
+	local URL CURL_ARGS WGET_ARGS
 	URL="$1"
 	if di_have_cmd curl; then
-		curl --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -sL -I -o /dev/null "${URL}"
+		CURL_ARGS="$(curl_common_args)"
+		curl ${CURL_ARGS} -I -o /dev/null "${URL}"
 	elif di_have_cmd wget; then
 		WGET_ARGS="$(wget_common_args)"
 		if wget_has_option '--spider'; then

@@ -8,6 +8,31 @@ have_cmd() {
 	which "$1" >/dev/null 2>&1
 }
 
+curl_help() {
+	if [ -z "${CURL_HELP_CACHE_SET:-}" ]; then
+		CURL_HELP_CACHE="$(curl --help all 2>&1; curl --help 2>&1)"
+		CURL_HELP_CACHE_SET="1"
+	fi
+	printf '%s\n' "${CURL_HELP_CACHE}"
+}
+
+curl_has_option() {
+	curl_help | grep -q -e "$1"
+}
+
+curl_common_args() {
+	if [ -z "${CURL_COMMON_ARGS_SET:-}" ]; then
+		CURL_COMMON_ARGS="-f -sL"
+		curl_has_option '--retry ' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --retry 5"
+		curl_has_option '--connect-timeout' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --connect-timeout 25"
+		curl_has_option '--retry-delay' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --retry-delay 5"
+		curl_has_option '--max-time' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --max-time $((5 * 25))"
+		curl_has_option '--retry-connrefused' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --retry-connrefused"
+		CURL_COMMON_ARGS_SET="1"
+	fi
+	printf '%s' "${CURL_COMMON_ARGS}"
+}
+
 wget_help() {
 	if [ -z "${WGET_HELP_CACHE_SET:-}" ]; then
 		WGET_HELP_CACHE="$(wget --help 2>&1)"
@@ -35,10 +60,11 @@ wget_common_args() {
 }
 
 http_probe() {
-	local URL WGET_ARGS
+	local URL CURL_ARGS WGET_ARGS
 	URL="$1"
 	if have_cmd curl; then
-		curl --retry 5 --connect-timeout 25 --retry-delay 5 --max-time $((5 * 25)) --retry-connrefused -f -sL -I -o /dev/null "${URL}"
+		CURL_ARGS="$(curl_common_args)"
+		curl ${CURL_ARGS} -I -o /dev/null "${URL}"
 	elif have_cmd wget; then
 		WGET_ARGS="$(wget_common_args)"
 		if wget_has_option '--spider'; then
