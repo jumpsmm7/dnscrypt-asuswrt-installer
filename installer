@@ -159,13 +159,23 @@ http_get_stdout() {
 }
 
 http_probe() {
-	local URL CURL_ARGS WGET_ARGS
+	local URL CURL_ARGS WGET_ARGS maxwait
 	URL="$1"
+	maxwait="${2:-}"
 	if di_have_cmd curl; then
 		CURL_ARGS="$(curl_common_args)"
+		if [ -n "${maxwait}" ]; then
+			curl_has_option '--retry ' && CURL_ARGS="${CURL_ARGS} --retry 0"
+			curl_has_option '--connect-timeout' && CURL_ARGS="${CURL_ARGS} --connect-timeout ${maxwait}"
+			curl_has_option '--max-time' && CURL_ARGS="${CURL_ARGS} --max-time ${maxwait}"
+		fi
 		curl ${CURL_ARGS} -I -o /dev/null "${URL}"
 	elif di_have_cmd wget; then
 		WGET_ARGS="$(wget_common_args)"
+		if [ -n "${maxwait}" ]; then
+			wget_has_option '--tries' && WGET_ARGS="${WGET_ARGS} --tries=1"
+			wget_has_option '--timeout' && WGET_ARGS="${WGET_ARGS} --timeout=${maxwait}"
+		fi
 		if wget_has_option '--spider'; then
 			wget ${WGET_ARGS} -q --spider "${URL}"
 		else
@@ -417,7 +427,7 @@ backup_restore() {
 
 ########################Modified Version of @Adamm Check_Connection####################################################
 check_connection() {
-	local deadline i livecheck="0" maxwait now sleep_for
+	local deadline i livecheck="0" maxwait now remaining sleep_for
 	maxwait="${1:-}"
 	if [ -n "${maxwait}" ]; then
 		now="$(date +%s)"
@@ -425,12 +435,19 @@ check_connection() {
 	fi
 	while [ "${livecheck}" != "4" ]; do
 		for i in google.com github.com snbforums.com; do
+			remaining=""
 			if [ -n "${deadline}" ]; then
 				now="$(date +%s)"
-				[ "${now}" -ge "${deadline}" ] && return 1
+				remaining="$((deadline - now))"
+				[ "${remaining}" -le 0 ] && return 1
 			fi
 			if { ! nslookup "${i}" 127.0.0.1 >/dev/null 2>&1; } && { ping -q -w3 -c1 "${i}" >/dev/null 2>&1; }; then
-				if ! http_probe "http://${i}" >/dev/null 2>&1; then
+				if [ -n "${deadline}" ]; then
+					now="$(date +%s)"
+					remaining="$((deadline - now))"
+					[ "${remaining}" -le 0 ] && return 1
+				fi
+				if ! http_probe "http://${i}" "${remaining}" >/dev/null 2>&1; then
 					if [ -n "${deadline}" ]; then
 						now="$(date +%s)"
 						[ "${now}" -ge "${deadline}" ] && return 1
