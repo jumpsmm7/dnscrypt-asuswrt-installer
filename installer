@@ -294,15 +294,20 @@ dnscrypt_wait_started() {
 }
 
 dnscrypt_wait_ready() {
-	local elapsed maxwait
-	elapsed="0"
+	local elapsed maxwait now remaining start
 	maxwait="${1:-${DNSCRYPT_READY_TIMEOUT}}"
-	while ! { check_connection && dnscrypt_is_running; }; do
+	start="$(date +%s)"
+	while :; do
+		now="$(date +%s)"
+		elapsed="$((now - start))"
+		if [ "${elapsed}" -ge "${maxwait}" ]; then return 1; fi
+		remaining="$((maxwait - elapsed))"
+		if check_connection "${remaining}" && dnscrypt_is_running; then return 0; fi
+		now="$(date +%s)"
+		elapsed="$((now - start))"
 		if [ "${elapsed}" -ge "${maxwait}" ]; then return 1; fi
 		sleep 1s
-		elapsed="$((elapsed + 1))"
 	done
-	return 0
 }
 
 dnscrypt_stop() {
@@ -412,11 +417,24 @@ backup_restore() {
 
 ########################Modified Version of @Adamm Check_Connection####################################################
 check_connection() {
-	local livecheck="0" i
+	local deadline i livecheck="0" maxwait now sleep_for
+	maxwait="${1:-}"
+	if [ -n "${maxwait}" ]; then
+		now="$(date +%s)"
+		deadline="$((now + maxwait))"
+	fi
 	while [ "${livecheck}" != "4" ]; do
 		for i in google.com github.com snbforums.com; do
+			if [ -n "${deadline}" ]; then
+				now="$(date +%s)"
+				[ "${now}" -ge "${deadline}" ] && return 1
+			fi
 			if { ! nslookup "${i}" 127.0.0.1 >/dev/null 2>&1; } && { ping -q -w3 -c1 "${i}" >/dev/null 2>&1; }; then
 				if ! http_probe "http://${i}" >/dev/null 2>&1; then
+					if [ -n "${deadline}" ]; then
+						now="$(date +%s)"
+						[ "${now}" -ge "${deadline}" ] && return 1
+					fi
 					sleep 1s
 					continue
 				fi
@@ -425,7 +443,15 @@ check_connection() {
 		done
 		livecheck="$((livecheck + 1))"
 		if [ "${livecheck}" != "4" ]; then
-			sleep 10s
+			if [ -n "${deadline}" ]; then
+				now="$(date +%s)"
+				sleep_for="$((deadline - now))"
+				[ "${sleep_for}" -le 0 ] && return 1
+				[ "${sleep_for}" -gt 10 ] && sleep_for="10"
+				sleep "${sleep_for}s"
+			else
+				sleep 10s
+			fi
 			continue
 		fi
 		return 1
@@ -814,7 +840,7 @@ check_version() {
 					fi
 				fi
 				varcnt="$((varcnt + 1))"
-				if [ "${varcnt}" -ge 2 ]; then
+				if [ "${varcnt}" -ge 2 ] && { [ -z "${LINSTALL}" ] || [ -z "${RMNSTALL}" ] || [ -z "${MD5SUM_L}" ] || [ -z "${MD5SUM_R}" ]; }; then
 					rm -f "${REMOTE_INSTALLER}" "${REMOTE_INSTALLER_MD5}"
 					printf "%s\n" "One or more critical variables could not be set in a timely manner." "Please check your internet connection, or try again later." "The installer script will now exit."
 					sleep 3s
@@ -861,7 +887,7 @@ check_version() {
 							fi
 						fi
 						varcnt="$((varcnt + 1))"
-						if [ "${varcnt}" -ge 2 ]; then
+						if [ "${varcnt}" -ge 2 ] && { [ -z "${MD5SUM_LM}" ] || [ -z "${MD5SUM_M}" ]; }; then
 							rm -f "${REMOTE_MANAGER}"
 							printf "%s\n" "One or more critical variables could not be set in a timely manner." "Please check your internet connection, or try again later." "The installer script will now exit."
 							sleep 3s
