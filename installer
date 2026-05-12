@@ -303,17 +303,30 @@ dnscrypt_wait_started() {
 	return 0
 }
 
+monotonic_seconds() {
+	local uptime
+	if read -r uptime _ </proc/uptime; then
+		uptime="${uptime%%.*}"
+		case "${uptime}" in
+			"" | *[!0-9]*) return 1 ;;
+		esac
+		printf '%s\n' "${uptime}"
+		return 0
+	fi
+	return 1
+}
+
 dnscrypt_wait_ready() {
 	local elapsed maxwait now remaining start
 	maxwait="${1:-${DNSCRYPT_READY_TIMEOUT}}"
-	start="$(date +%s)"
+	start="$(monotonic_seconds)" || return 1
 	while :; do
-		now="$(date +%s)"
+		now="$(monotonic_seconds)" || return 1
 		elapsed="$((now - start))"
 		if [ "${elapsed}" -ge "${maxwait}" ]; then return 1; fi
 		remaining="$((maxwait - elapsed))"
 		if check_connection "${remaining}" && dnscrypt_is_running; then return 0; fi
-		now="$(date +%s)"
+		now="$(monotonic_seconds)" || return 1
 		elapsed="$((now - start))"
 		if [ "${elapsed}" -ge "${maxwait}" ]; then return 1; fi
 		sleep 1s
@@ -430,25 +443,25 @@ check_connection() {
 	local deadline i livecheck="0" maxwait now remaining sleep_for
 	maxwait="${1:-}"
 	if [ -n "${maxwait}" ]; then
-		now="$(date +%s)"
+		now="$(monotonic_seconds)" || return 1
 		deadline="$((now + maxwait))"
 	fi
 	while [ "${livecheck}" != "4" ]; do
 		for i in google.com github.com snbforums.com; do
 			if [ -n "${deadline}" ]; then
-				now="$(date +%s)"
+				now="$(monotonic_seconds)" || return 1
 				[ "${now}" -ge "${deadline}" ] && return 1
 			fi
 			if { ! nslookup "${i}" 127.0.0.1 >/dev/null 2>&1; } && { ping -q -w3 -c1 "${i}" >/dev/null 2>&1; }; then
 				remaining=""
 				if [ -n "${deadline}" ]; then
-					now="$(date +%s)"
+					now="$(monotonic_seconds)" || return 1
 					remaining="$((deadline - now))"
 					[ "${remaining}" -le 0 ] && return 1
 				fi
 				if ! http_probe "http://${i}" "${remaining}" >/dev/null 2>&1; then
 					if [ -n "${deadline}" ]; then
-						now="$(date +%s)"
+						now="$(monotonic_seconds)" || return 1
 						[ "${now}" -ge "${deadline}" ] && return 1
 					fi
 					sleep 1s
@@ -460,7 +473,7 @@ check_connection() {
 		livecheck="$((livecheck + 1))"
 		if [ "${livecheck}" != "4" ]; then
 			if [ -n "${deadline}" ]; then
-				now="$(date +%s)"
+				now="$(monotonic_seconds)" || return 1
 				sleep_for="$((deadline - now))"
 				[ "${sleep_for}" -le 0 ] && return 1
 				[ "${sleep_for}" -gt 10 ] && sleep_for="10"
