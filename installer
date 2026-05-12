@@ -237,6 +237,16 @@ PTXT() {
 	esac
 }
 
+md5_is_valid() {
+	[ "$(printf '%s' "$1" | wc -c)" -eq 32 ] || return 1
+	case "$1" in
+		*[!0123456789abcdefABCDEF]*)
+			return 1
+			;;
+	esac
+	return 0
+}
+
 kill_processes() {
 	local PID PIDS PROCESS
 	for PROCESS in "$@"; do
@@ -774,30 +784,41 @@ check_swap() {
 }
 
 check_version() {
-	local RMNSTALL LINSTALL MD5SUM_L MD5SUM_R REMOTE_INSTALLER varcnt
+	local RMNSTALL LINSTALL MD5SUM_L MD5SUM_R MD5SUM_REMOTE REMOTE_INSTALLER REMOTE_INSTALLER_MD5 varcnt
 	if [ -f "${TARG_DIR}/installer" ] && [ -f "${TARG_DIR}/dnscrypt-proxy" ] && [ -z "$2" ]; then
 		if [ -n "$1" ] || { check_connection; }; then
 			REMOTE_INSTALLER="${TARG_DIR}/.installer.remote.$$"
+			REMOTE_INSTALLER_MD5="${REMOTE_INSTALLER}.md5sum"
 			varcnt="0"
 			until [ -n "${LINSTALL}" ] && [ -n "${RMNSTALL}" ] && [ -n "${MD5SUM_L}" ] && [ -n "${MD5SUM_R}" ]; do
 				if [ -z "${LINSTALL}" ]; then LINSTALL="$(awk -F= '/^DI_VERSION=/ { gsub(/"/, "", $2); sub(/^v/, "", $2); if ($2 ~ /^[0-9]{1,2}(\.[0-9]{1,2}){2}$/) print $2; exit }' "${TARG_DIR}/installer")"; fi
 				if [ -z "${MD5SUM_L}" ]; then MD5SUM_L="$(md5sum "${TARG_DIR}/installer" | awk '{print $1; exit}')"; fi
 				if [ -z "${RMNSTALL}" ] || [ -z "${MD5SUM_R}" ]; then
-					rm -f "${REMOTE_INSTALLER}"
+					MD5SUM_REMOTE=""
+					rm -f "${REMOTE_INSTALLER}" "${REMOTE_INSTALLER_MD5}"
 					if http_get_file "${RURL}/installer" "${REMOTE_INSTALLER}" && [ -s "${REMOTE_INSTALLER}" ]; then
-						RMNSTALL="$(awk -F= '/^DI_VERSION=/ { gsub(/"/, "", $2); sub(/^v/, "", $2); if ($2 ~ /^[0-9]{1,2}(\.[0-9]{1,2}){2}$/) print $2; exit }' "${REMOTE_INSTALLER}")"
+						if http_get_file "${RURL}/installer.md5sum" "${REMOTE_INSTALLER_MD5}" && [ -s "${REMOTE_INSTALLER_MD5}" ]; then
+							MD5SUM_REMOTE="$(awk '{print $1; exit}' "${REMOTE_INSTALLER_MD5}")"
+						fi
 						MD5SUM_R="$(md5sum "${REMOTE_INSTALLER}" | awk '{print $1; exit}')"
+						if md5_is_valid "${MD5SUM_REMOTE}" && [ "${MD5SUM_REMOTE}" != "${MD5SUM_R}" ]; then
+							RMNSTALL=""
+							MD5SUM_R=""
+							rm -f "${REMOTE_INSTALLER}" "${REMOTE_INSTALLER_MD5}"
+						else
+							RMNSTALL="$(awk -F= '/^DI_VERSION=/ { gsub(/"/, "", $2); sub(/^v/, "", $2); if ($2 ~ /^[0-9]{1,2}(\.[0-9]{1,2}){2}$/) print $2; exit }' "${REMOTE_INSTALLER}")"
+						fi
 					fi
 				fi
 				varcnt="$((varcnt + 1))"
 				if [ "${varcnt}" -ge 2 ]; then
-					rm -f "${REMOTE_INSTALLER}"
+					rm -f "${REMOTE_INSTALLER}" "${REMOTE_INSTALLER_MD5}"
 					printf "%s\n" "One or more critical variables could not be set in a timely manner." "Please check your internet connection, or try again later." "The installer script will now exit."
 					sleep 3s
 					exit 1
 				fi
 			done
-			rm -f "${REMOTE_INSTALLER}"
+			rm -f "${REMOTE_INSTALLER}" "${REMOTE_INSTALLER_MD5}"
 			if { [ -n "${LINSTALL}" ] && [ -n "${RMNSTALL}" ]; }; then
 				[ -z "${LINSTALL}" ] && exit 1
 				[ -z "${RMNSTALL}" ] && exit 1
@@ -1292,7 +1313,7 @@ del_jffs_script() {
 }
 
 download_file() {
-	local TARG PERM URL RET FILENAME TMP_FILE MD5SUM_OLD MD5SUM_CURR COUNT
+	local TARG PERM URL RET FILENAME TMP_FILE TMP_MD5_FILE MD5SUM_OLD MD5SUM_CURR MD5SUM_EXPECTED COUNT
 	TARG="$1"
 	shift
 	PERM="$1"
@@ -1301,34 +1322,46 @@ download_file() {
 	for URL in "$@"; do
 		FILENAME="$(basename "${URL}")"
 		TMP_FILE="${TARG}/.${FILENAME}.$$"
+		TMP_MD5_FILE="${TMP_FILE}.md5sum"
 		MD5SUM_OLD=""
 		MD5SUM_CURR=""
+		MD5SUM_EXPECTED=""
 		COUNT="0"
 		[ -f "${TARG}/${FILENAME}" ] && MD5SUM_OLD="$(md5sum "${TARG}/${FILENAME}" | awk '{print $1; exit}')"
 		while [ "${COUNT}" -lt 3 ]; do
 			PTXT "${INFO} Downloading ${FILENAME}"
-			rm -f "${TMP_FILE}"
+			rm -f "${TMP_FILE}" "${TMP_MD5_FILE}"
+			MD5SUM_EXPECTED=""
 			if http_get_file "${URL}" "${TMP_FILE}" "" insecure && [ -s "${TMP_FILE}" ]; then
+				if http_get_file "${URL}.md5sum" "${TMP_MD5_FILE}" "" insecure && [ -s "${TMP_MD5_FILE}" ]; then
+					MD5SUM_EXPECTED="$(awk '{print $1; exit}' "${TMP_MD5_FILE}")"
+				fi
 				MD5SUM_CURR="$(md5sum "${TMP_FILE}" | awk '{print $1; exit}')"
+				if md5_is_valid "${MD5SUM_EXPECTED}" && [ "${MD5SUM_EXPECTED}" != "${MD5SUM_CURR}" ]; then
+					PTXT "${WARNING} ${FILENAME} checksum mismatch. Retrying..."
+					COUNT="$((COUNT + 1))"
+					continue
+				fi
 				break
 			fi
 			COUNT="$((COUNT + 1))"
 		done
 		if [ "${COUNT}" -eq 3 ]; then
-			rm -f "${TMP_FILE}"
+			rm -f "${TMP_FILE}" "${TMP_MD5_FILE}"
 			PTXT "${ERROR} Unable to download ${BOLD}${URL}${NORM}"
 			RET="$((RET + 1))"
 			continue
 		fi
-		if [ "$(PTXT -n "${MD5SUM_CURR}" | wc -c)" -eq 32 ] && [ "${MD5SUM_CURR}" = "${MD5SUM_OLD}" ]; then
-			rm -f "${TMP_FILE}"
+		if md5_is_valid "${MD5SUM_CURR}" && [ "${MD5SUM_CURR}" = "${MD5SUM_OLD}" ]; then
+			rm -f "${TMP_FILE}" "${TMP_MD5_FILE}"
 			PTXT "${INFO} ${FILENAME} is up to date. Skipping..."
 			continue
 		fi
+		rm -f "${TMP_MD5_FILE}"
 		if mv "${TMP_FILE}" "${TARG}/${FILENAME}" && chmod "${PERM}" "${TARG}/${FILENAME}"; then
 			continue
 		fi
-		rm -f "${TMP_FILE}"
+		rm -f "${TMP_FILE}" "${TMP_MD5_FILE}"
 		PTXT "${ERROR} Unable to install ${BOLD}${FILENAME}${NORM}"
 		RET="$((RET + 1))"
 	done
