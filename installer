@@ -43,7 +43,10 @@ di_have_cmd() {
 
 curl_help() {
 	if [ -z "${CURL_HELP_CACHE_SET:-}" ]; then
-		CURL_HELP_CACHE="$(curl --help all 2>&1; curl --help 2>&1)"
+		CURL_HELP_CACHE="$(
+			curl --help all 2>&1
+			curl --help 2>&1
+		)"
 		CURL_HELP_CACHE_SET="1"
 	fi
 	printf '%s\n' "${CURL_HELP_CACHE}"
