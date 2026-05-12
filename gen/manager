@@ -248,10 +248,9 @@ dnscrypt_proxy_run_flock() {
 	fi
 	dnscrypt_proxy_run_execute "${action}" "${pid_file}" "$$"
 	status="$?"
+	rm -f "${pid_file}"
 	flock -u 9 >/dev/null 2>&1
 	exec 9>&-
-	rm -rf "${lock_dir}"
-	rm -f "${lock_file}"
 	return "${status}"
 }
 
