@@ -700,9 +700,10 @@ update_opendns() {
 	local RET
 	case "${OPENDNS_USER}:${OPENDNS_PASSWORD}" in
 		"":*|*:""|"":"")
+			logger -st "${NAME}" "OpenDNS: one or more variable not set correctly; skipping IP update."
 			return
 			;;
-		*|*)
+		*:*)
 			if ! have_cmd curl; then
 				logger -st "${NAME}" "OpenDNS: curl is unavailable; skipping IP update."
 				return
@@ -716,10 +717,11 @@ update_opendns() {
 	RET="$(curl -k -s -u "${OPENDNS_USER}:${OPENDNS_PASSWORD}" "https://updates.opendns.com/nic/update?hostname=")"
 	case "${RET}" in
 		good*)
-			logger -st "${NAME}" "OpenDNS: Update IP succeeded"
+			logger -st "${NAME}" "OpenDNS: Update IP succeeded status - ${RET}"
 			;;
 		badauth*)
-			logger -st "${NAME}" "OpenDNS: Wrong username or password"
+			logger -st "${NAME}" "OpenDNS: Wrong username/password, or ratelimit hit - ${RET}; skipping IP update."
+			return
 			;;
 		*)
 			logger -st "${NAME}" "OpenDNS: Received error ${RET}"
