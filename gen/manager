@@ -557,7 +557,7 @@ start_dnscrypt_proxy() {
 		return 1
 	fi
 	logger -st "${NAME}" "Starting dnscrypt-proxy from ${NAME}."
-	{ nohup "${DNSCRYPT_START}" >/dev/null 2>&1 </dev/null & }
+	{ nohup ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 	if ! grep -q '^servers-file=/jffs/dnscrypt/resolv.dnsmasq' "/etc/dnsmasq.conf"; then service restart_dnsmasq >/dev/null 2>&1; fi
 	if dnscrypt_wait_started 30 && { service_wait netcheck 300; }; then return "0"; else return "1"; fi
 }
@@ -698,9 +698,20 @@ timezone() {
 
 update_opendns() {
 	local RET
-	if [ -z "${OPENDNS_USER}" ] || [ -z "${OPENDNS_PASSWORD}" ] || [ "$1" -gt 2 ] || ! have_cmd curl; then
-		return
-	fi
+	case "${OPENDNS_USER}:${OPENDNS_PASSWORD}" in
+		"":*|*:""|"":"")
+			return
+			;;
+		*|*)
+			if ! have_cmd curl; then
+				logger -st "${NAME}" "OpenDNS: curl is unavailable; skipping IP update."
+				return
+			elif [ "$1" -gt 2 ]; then
+				logger -st "${NAME}" "OpenDNS: Retry count exceeded; skipping IP update."
+				return
+			fi
+			;;
+	esac				
 	sleep 5s
 	RET="$(curl -k -s -u "${OPENDNS_USER}:${OPENDNS_PASSWORD}" "https://updates.opendns.com/nic/update?hostname=")"
 	case "${RET}" in
