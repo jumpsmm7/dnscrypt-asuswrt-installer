@@ -492,18 +492,18 @@ proc_write() {
 }
 
 proc_optimizations() {
-	{ proc_write "4194304" "/proc/sys/kernel/pid_max"; }									# Ensure max PID coverage
-	{ proc_write "2" "/proc/sys/vm/overcommit_memory"; }									# Ensure ratio algorithm checks properly work including swap.
-	{ proc_write "60" "/proc/sys/vm/swappiness"; }											# Ensure swappiness is set for more readily usability.
-	{ proc_write "50" "/proc/sys/vm/overcommit_ratio"; }									# Ensure a proper overcommit policy is available.
-	{ proc_write "4194304" "/proc/sys/net/core/rmem_max"; }									# Ensure UDP receive buffer set to 4M.
-	{ proc_write "1048576" "/proc/sys/net/core/wmem_max"; } 								# Ensure 1M for wmem_max.
-	{ proc_write "0" "/proc/sys/net/ipv4/icmp_ratelimit"; }									# Ensure Control over MTRS
-	{ proc_write "240" "/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_max_retrans"; }	# Lower conntrack tcp_timeout_max_retrans from 300 to 240
-	{ proc_write "256" "/proc/sys/net/ipv4/neigh/default/gc_thresh1"; }						# Increase ARP cache sizes and GC thresholds
-	{ proc_write "1024" "/proc/sys/net/ipv4/neigh/default/gc_thresh2"; }					# Increase ARP cache sizes and GC thresholds
-	{ proc_write "2048" "/proc/sys/net/ipv4/neigh/default/gc_thresh3"; }					# Increase ARP cache sizes and GC thresholds
-	if [ -n "$(nvram get ipv6_service)" ]; then												# IPV6 proc variants
+	{ proc_write "4194304" "/proc/sys/kernel/pid_max"; }                                 # Ensure max PID coverage
+	{ proc_write "2" "/proc/sys/vm/overcommit_memory"; }                                 # Ensure ratio algorithm checks properly work including swap.
+	{ proc_write "60" "/proc/sys/vm/swappiness"; }                                       # Ensure swappiness is set for more readily usability.
+	{ proc_write "50" "/proc/sys/vm/overcommit_ratio"; }                                 # Ensure a proper overcommit policy is available.
+	{ proc_write "4194304" "/proc/sys/net/core/rmem_max"; }                              # Ensure UDP receive buffer set to 4M.
+	{ proc_write "1048576" "/proc/sys/net/core/wmem_max"; }                              # Ensure 1M for wmem_max.
+	{ proc_write "0" "/proc/sys/net/ipv4/icmp_ratelimit"; }                              # Ensure Control over MTRS
+	{ proc_write "240" "/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_max_retrans"; } # Lower conntrack tcp_timeout_max_retrans from 300 to 240
+	{ proc_write "256" "/proc/sys/net/ipv4/neigh/default/gc_thresh1"; }                  # Increase ARP cache sizes and GC thresholds
+	{ proc_write "1024" "/proc/sys/net/ipv4/neigh/default/gc_thresh2"; }                 # Increase ARP cache sizes and GC thresholds
+	{ proc_write "2048" "/proc/sys/net/ipv4/neigh/default/gc_thresh3"; }                 # Increase ARP cache sizes and GC thresholds
+	if [ -n "$(nvram get ipv6_service)" ]; then                                          # IPV6 proc variants
 		{ proc_write "0" "/proc/sys/net/ipv6/icmp/ratelimit"; }
 		{ proc_write "256" "/proc/sys/net/ipv6/neigh/default/gc_thresh1"; }
 		{ proc_write "1024" "/proc/sys/net/ipv6/neigh/default/gc_thresh2"; }
@@ -572,7 +572,7 @@ start_monitor() {
 	RANDOM="0"
 	logger -st "${NAME}" "Starting Monitor!"
 	while true; do
-		if [ "${EXIT}" = "1" ]; then																		# A place to exit early if needed, or if binary becomes unavailable before service-stop.
+		if [ "${EXIT}" = "1" ]; then # A place to exit early if needed, or if binary becomes unavailable before service-stop.
 			logger -st "${NAME}" "Stopping Monitor!"
 			trap - HUP INT QUIT ABRT USR1 USR2 TERM
 			{ dnscrypt_proxy_run stop_dnscrypt_proxy; }
