@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          dnscrypt_ref="${DNSCRYPT_REF_INPUT:-latest}"
+          dnscrypt_ref="${DNSCRYPT_REF_INPUT:-master}"
 
           if [ "${dnscrypt_ref}" = "latest" ]; then
             dnscrypt_ref="$(
