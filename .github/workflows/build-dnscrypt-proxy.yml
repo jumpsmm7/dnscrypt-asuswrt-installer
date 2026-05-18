@@ -1,9 +1,15 @@
 name: Build dnscrypt-proxy-nightly
+run-name: dnscrypt-proxy-nightly -> ${{ inputs.target_branch || github.ref_name }}
 
 on:
   schedule:
     - cron: '17 7 * * *'
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Installer repository branch to update; leave blank to use the selected branch'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -13,7 +19,7 @@ defaults:
     shell: bash
 
 concurrency:
-  group: dnscrypt-proxy-nightly-${{ github.ref }}
+  group: dnscrypt-proxy-nightly-${{ inputs.target_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -41,6 +47,7 @@ jobs:
       - name: Check out installer repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_branch || github.ref_name }}
           fetch-depth: 0
 
       - name: Check out dnscrypt-proxy source
@@ -166,6 +173,7 @@ jobs:
       - name: Check out installer repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_branch || github.ref_name }}
           fetch-depth: 0
 
       - name: Download nightly package artifacts
@@ -187,6 +195,8 @@ jobs:
           test -f armv8/dnscrypt-proxy-linux_arm64-nightly.tar.gz.minisig
 
       - name: Commit nightly packages
+        env:
+          TARGET_BRANCH: ${{ inputs.target_branch || github.ref_name }}
         run: |
           set -euo pipefail
 
@@ -208,4 +218,4 @@ jobs:
           fi
 
           git commit -m "chore: update dnscrypt-proxy nightly builds"
-          git push
+          git push origin HEAD:"${TARGET_BRANCH}"
