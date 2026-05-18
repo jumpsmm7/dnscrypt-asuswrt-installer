@@ -30,12 +30,33 @@ readonly API_HEADERS="/tmp/DI_GIT_API_$$_headers.out"
 readonly LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releases/latest"
 readonly DNSCRYPT_WAIT_TIMEOUT="60"
 readonly DNSCRYPT_READY_TIMEOUT="180"
+readonly BASE_DIR="/jffs"
+readonly TARG_DIR="${BASE_DIR}/dnscrypt"
+readonly CONF_FILE="${TARG_DIR}/.config"
+readonly TOML_FILE="${TARG_DIR}/dnscrypt-proxy.toml"
+readonly TOML_BAK="${TARG_DIR}/dnscrypt-proxy.toml.bak"
+readonly TOML_ERR="${TARG_DIR}/dnscrypt-proxy.toml.err"
+readonly TOML_ORI="${TARG_DIR}/example-dnscrypt-proxy.toml"
+SCRIPT_LOC="$(readlink -f "$0")" || true
+readonly SCRIPT_LOC
+
+BOLD="$(printf "\033[1m")" || true
+readonly BOLD
+NORM="$(printf "\033[0m")" || true
+readonly NORM
+INFO="$(printf "%s" "${BOLD} Info: ${NORM}")" || true
+readonly INFO
+ERROR="$(printf "%s" "${BOLD} *** Error: ${NORM}")" || true
+readonly ERROR
+WARNING="$(printf "%s" "${BOLD} * Warning: ${NORM}")" || true
+readonly WARNING
+INPUT="$(printf "%s" "${BOLD} => ${NORM}")" || true
+readonly INPUT
 
 # API and command helpers
 cleanup_api_files() {
 	rm -f "${API_FILE}" "${API_HEADERS}"
 }
-trap cleanup_api_files EXIT
 
 di_have_cmd() {
 	which "$1" >/dev/null 2>&1
@@ -52,7 +73,7 @@ curl_common_args() {
 		curl_has_option '--retry-connrefused' && CURL_COMMON_ARGS="${CURL_COMMON_ARGS} --retry-connrefused"
 		CURL_COMMON_ARGS_SET="1"
 	fi
-	printf '%s' "${CURL_COMMON_ARGS}"
+	PTXT -n "${CURL_COMMON_ARGS}"
 }
 
 curl_has_option() {
@@ -67,7 +88,7 @@ curl_help() {
 		)"
 		CURL_HELP_CACHE_SET="1"
 	fi
-	printf '%s\n' "${CURL_HELP_CACHE}"
+	PTXT "${CURL_HELP_CACHE}"
 }
 
 curl_insecure_arg() {
@@ -76,7 +97,7 @@ curl_insecure_arg() {
 		curl_has_option '--insecure' && CURL_INSECURE_ARG=" -k"
 		CURL_INSECURE_ARG_SET="1"
 	fi
-	printf '%s' "${CURL_INSECURE_ARG}"
+	PTXT -n "${CURL_INSECURE_ARG}"
 }
 
 # HTTP transfer helpers
@@ -165,7 +186,7 @@ wget_common_args() {
 		wget_has_option '--retry-connrefused' && WGET_COMMON_ARGS="${WGET_COMMON_ARGS} --retry-connrefused"
 		WGET_COMMON_ARGS_SET="1"
 	fi
-	printf '%s' "${WGET_COMMON_ARGS}"
+	PTXT -n "${WGET_COMMON_ARGS}"
 }
 
 wget_has_option() {
@@ -177,7 +198,7 @@ wget_help() {
 		WGET_HELP_CACHE="$(wget --help 2>&1)"
 		WGET_HELP_CACHE_SET="1"
 	fi
-	printf '%s\n' "${WGET_HELP_CACHE}"
+	PTXT "${WGET_HELP_CACHE}"
 }
 
 wget_insecure_arg() {
@@ -186,12 +207,12 @@ wget_insecure_arg() {
 		wget_has_option '--no-check-certificate' && WGET_INSECURE_ARG=" --no-check-certificate"
 		WGET_INSECURE_ARG_SET="1"
 	fi
-	printf '%s' "${WGET_INSECURE_ARG}"
+	PTXT -n "${WGET_INSECURE_ARG}"
 }
 
 # Output helpers
 _quote() {
-	printf "%s\n" "$1" | sed 's/[]\/()$*.^|[]/\\&/g'
+	PTXT "$1" | sed 's/[]\/()$*.^|[]/\\&/g'
 }
 
 PTXT() {
@@ -398,7 +419,7 @@ installer_update_reexec() {
 }
 
 md5_is_valid() {
-	[ "$(printf '%s' "$1" | wc -c)" -eq 32 ] || return 1
+	[ "$(PTXT -n "$1" | wc -c)" -eq 32 ] || return 1
 	case "$1" in
 		*[!0123456789abcdefABCDEF]*)
 			return 1
@@ -423,10 +444,10 @@ sanitize_branch() {
 	local CANDIDATE
 	CANDIDATE="$1"
 	if branch_is_safe "${CANDIDATE}"; then
-		printf '%s\n' "${CANDIDATE}"
+		PTXT "${CANDIDATE}"
 	else
-		printf '%s\n' "${WARNING} Ignoring unsafe installer branch '${CANDIDATE}', using master instead." >&2
-		printf '%s\n' "master"
+		PTXT "${WARNING} Ignoring unsafe installer branch ${CANDIDATE}, using master instead." >&2
+		PTXT "master"
 	fi
 }
 
@@ -665,6 +686,7 @@ check_anonymized_disabled() {
 	PTXT "${INFO} Continue without Relays Support"
 }
 
+########################Modified Version of @Adamm Check_Connection####################################################
 check_connection() {
 	local deadline i livecheck="0" maxwait now remaining sleep_for
 	maxwait="${1:-}"
@@ -712,6 +734,7 @@ check_connection() {
 		return 1
 	done
 }
+#######################################################################################################################
 
 check_dns_environment() {
 	if [ -f "/opt/etc/init.d/S61stubby" ] || [ -f "/opt/sbin/stubby" ] || [ -f "/opt/bin/install_stubby" ] || [ -f "/jffs/scripts/install_stubby.sh" ] || [ -d "/jffs/addons/AdGuardHome.d" ]; then
@@ -1071,7 +1094,7 @@ check_version() {
 				varcnt="$((varcnt + 1))"
 				if [ "${varcnt}" -ge 2 ] && { [ -z "${LINSTALL}" ] || [ -z "${RMNSTALL}" ] || [ -z "${MD5SUM_L}" ] || [ -z "${MD5SUM_R}" ]; }; then
 					rm -f "${REMOTE_INSTALLER}" "${REMOTE_INSTALLER_MD5}"
-					printf "%s\n" "One or more critical variables could not be set in a timely manner." "Please check your internet connection, or try again later." "The installer script will now exit."
+					PTXT "One or more critical variables could not be set in a timely manner." "Please check your internet connection, or try again later." "The installer script will now exit."
 					sleep 3s
 					exit 1
 				fi
@@ -1118,7 +1141,7 @@ check_version() {
 						varcnt="$((varcnt + 1))"
 						if [ "${varcnt}" -ge 2 ] && { [ -z "${MD5SUM_LM}" ] || [ -z "${MD5SUM_M}" ]; }; then
 							rm -f "${REMOTE_MANAGER}"
-							printf "%s\n" "One or more critical variables could not be set in a timely manner." "Please check your internet connection, or try again later." "The installer script will now exit."
+							PTXT "One or more critical variables could not be set in a timely manner." "Please check your internet connection, or try again later." "The installer script will now exit."
 							sleep 3s
 							exit 1
 						fi
@@ -2382,6 +2405,7 @@ menu() {
 	esac
 }
 
+trap cleanup_api_files EXIT
 varcnt=0
 readonly MAX_RETRIES="1"
 until [ -n "${DNSCRYPT_VER}" ]; do
@@ -2391,7 +2415,7 @@ until [ -n "${DNSCRYPT_VER}" ]; do
 		break
 	fi
 	if [ "${varcnt}" -gt "${MAX_RETRIES}" ]; then
-		printf "%s\n" "One or more critical variables could not be set in a timely manner." "It is possible we have hit the github api ratelimit (60req./hr) per requesters IP." "For more information, please read ${API_HEADERS}." "Please be sure to check your internet connection, and please try again later." "The installer script will now exit."
+		PTXT "One or more critical variables could not be set in a timely manner." "It is possible we have hit the github api ratelimit (60req./hr) per requesters IP." "For more information, please read ${API_HEADERS}." "Please be sure to check your internet connection, and please try again later." "The installer script will now exit."
 		sleep 3s
 		exit 1
 	fi
@@ -2401,32 +2425,6 @@ cleanup_api_files
 wait
 unset varcnt
 readonly DNSCRYPT_VER
-readonly BASE_DIR="/jffs"
-readonly TARG_DIR="${BASE_DIR}/dnscrypt"
-readonly CONF_FILE="${TARG_DIR}/.config"
-readonly TOML_FILE="${TARG_DIR}/dnscrypt-proxy.toml"
-readonly TOML_BAK="${TARG_DIR}/dnscrypt-proxy.toml.bak"
-readonly TOML_ERR="${TARG_DIR}/dnscrypt-proxy.toml.err"
-readonly TOML_ORI="${TARG_DIR}/example-dnscrypt-proxy.toml"
-SCRIPT_LOC="$(readlink -f "$0")" || true
-readonly SCRIPT_LOC
-
-BOLD="$(printf "\033[1m")" || true
-readonly BOLD
-NORM="$(printf "\033[0m")" || true
-readonly NORM
-INFO="$(printf "%s" "${BOLD} Info: ${NORM}")" || true
-readonly INFO
-ERROR="$(printf "%s" "${BOLD} *** Error: ${NORM}")" || true
-readonly ERROR
-WARNING="$(printf "%s" "${BOLD} * Warning: ${NORM}")" || true
-readonly WARNING
-INPUT="$(printf "%s" "${BOLD} => ${NORM}")" || true
-readonly INPUT
-
-########################Modified Version of @Adamm Check_Connection####################################################
-########################################################################################################################
-
 [ "$1" ] && BRANCH="$1" || BRANCH="master"
 case "${BRANCH}" in
 	"amtmupdate")
