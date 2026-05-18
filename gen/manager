@@ -4,7 +4,6 @@
 
 NAME="$(basename "$0")[$$]"
 
-
 # Command and network helpers
 curl_common_args() {
 	if [ -z "${CURL_COMMON_ARGS_SET:-}" ]; then
