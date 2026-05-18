@@ -157,7 +157,7 @@ If CI reports `shfmt` formatting differences, you can also run the `Create shfmt
 
 Pull requests that change shell scripts, checksum files, tools, prompts, or workflows are also reviewed by the Codex Code Improvement workflow when the repository has an `OPENAI_API_KEY` Actions secret configured. The Codex prompt includes the local code-quality output so formatting failures can be reported with the same remediation steps shown in CI.
 
-The `Build dnscrypt-proxy-nightly` workflow runs nightly and can also be run manually. It builds installer-compatible dnscrypt-proxy v2 nightly packages from the `DNSCrypt/dnscrypt-proxy` `master` branch:
+The `Build dnscrypt-proxy-nightly` workflow runs nightly on the GitHub Actions cron schedule `17 7 * * *` and can also be run manually from the Actions tab with `Run workflow`. It builds installer-compatible dnscrypt-proxy v2 nightly packages from the `DNSCrypt/dnscrypt-proxy` `master` branch:
 
 - `linux-armv7` with `GOOS=linux`, `GOARCH=arm`, and `GOARM=7`, published to `armv7/dnscrypt-proxy-linux_arm-nightly.tar.gz`.
 - `linux-armv8` with `GOOS=linux` and `GOARCH=arm64`, published to `armv8/dnscrypt-proxy-linux_arm64-nightly.tar.gz`.
