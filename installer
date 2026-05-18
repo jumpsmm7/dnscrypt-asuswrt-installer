@@ -31,7 +31,6 @@ readonly LATEST_URL="https://api.github.com/repos/jedisct1/dnscrypt-proxy/releas
 readonly DNSCRYPT_WAIT_TIMEOUT="60"
 readonly DNSCRYPT_READY_TIMEOUT="180"
 
-
 # API and command helpers
 cleanup_api_files() {
 	rm -f "${API_FILE}" "${API_HEADERS}"
@@ -2425,10 +2424,8 @@ readonly WARNING
 INPUT="$(printf "%s" "${BOLD} => ${NORM}")" || true
 readonly INPUT
 
-
 ########################Modified Version of @Adamm Check_Connection####################################################
 ########################################################################################################################
-
 
 [ "$1" ] && BRANCH="$1" || BRANCH="master"
 case "${BRANCH}" in
@@ -2515,7 +2512,6 @@ case "${ROUTER_ARCH}" in
 		exit 1
 		;;
 esac
-
 
 case "$2" in
 	"")
