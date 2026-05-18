@@ -38,10 +38,50 @@ jobs:
             repo_dir: armv8
 
     steps:
+<<<<<<< HEAD
       - name: Check out installer repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+=======
+      - name: Resolve dnscrypt-proxy release
+        id: dnscrypt
+        env:
+          DNSCRYPT_REF_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.dnscrypt_ref || 'latest' }}
+        run: |
+          set -euo pipefail
+
+          dnscrypt_ref="${DNSCRYPT_REF_INPUT:-master}"
+
+          if [ "${dnscrypt_ref}" = "latest" ]; then
+            dnscrypt_ref="$(
+              curl -fsSL \
+                -H 'Accept: application/vnd.github+json' \
+                -H 'X-GitHub-Api-Version: 2022-11-28' \
+                https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest |
+              sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' |
+              head -n 1
+            )"
+          fi
+
+          case "${dnscrypt_ref}" in
+            ""|*[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-]*)
+              echo "Invalid dnscrypt-proxy ref: ${dnscrypt_ref}" >&2
+              exit 1
+              ;;
+          esac
+
+          package_version="${dnscrypt_ref#v}"
+          case "${package_version}" in
+            ""|*[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-]*)
+              echo "Invalid dnscrypt-proxy package version: ${package_version}" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "ref=${dnscrypt_ref}" >> "${GITHUB_OUTPUT}"
+          echo "package_version=${package_version}" >> "${GITHUB_OUTPUT}"
+>>>>>>> c22076a33504d0d475f2be4966682655d3582334
 
       - name: Check out dnscrypt-proxy source
         uses: actions/checkout@v4
