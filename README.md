@@ -157,6 +157,13 @@ If CI reports `shfmt` formatting differences, you can also run the `Create shfmt
 
 Pull requests that change shell scripts, checksum files, tools, prompts, or workflows are also reviewed by the Codex Code Improvement workflow when the repository has an `OPENAI_API_KEY` Actions secret configured. The Codex prompt includes the local code-quality output so formatting failures can be reported with the same remediation steps shown in CI.
 
+The `Build dnscrypt-proxy ARM packages` workflow can be run manually to build installer-compatible dnscrypt-proxy v2 packages from a `DNSCrypt/dnscrypt-proxy` release tag, or from `latest`. It cross-compiles:
+
+- `linux-armv7` with `GOOS=linux`, `GOARCH=arm`, and `GOARM=7`, packaged as `dnscrypt-proxy-linux_arm-<version>.tar.gz`.
+- `linux-armv8` with `GOOS=linux` and `GOARCH=arm64`, packaged as `dnscrypt-proxy-linux_arm64-<version>.tar.gz`.
+
+The uploaded artifacts include SHA-256 checksums and preserve the upstream archive layout expected by the installer.
+
 ## Project notes
 
 - Dnscrypt-Proxy binaries come from [jedisct1/dnscrypt-proxy](https://github.com/jedisct1/dnscrypt-proxy).
