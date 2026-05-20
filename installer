@@ -750,16 +750,14 @@ check_dns_environment() {
 		for VAR in "$(nvram get ${i} 2>/dev/null)"; do
 			if [ "${i}" = "dnspriv_enable" ]; then if [ "$VAR" != "0" ]; then {
 				nvram set "${i}"="0"
-				NVCHECK="$((NVCHECK + 1))"
-			}; else continue; fi; fi
-			if [ "${i}" = "dhcpd_dns_router" ]; then if [ "$VAR" != "1" ]; then {
-				nvram set "${i}"="1"
-				NVCHECK="$((NVCHECK + 1))"
-			}; else continue; fi; fi
-			if [ "$VAR" ]; then {
-				nvram set "${i}"=""
-				NVCHECK="$((NVCHECK + 1))"
 			}; else continue; fi
+			elif [ "${i}" = "dhcpd_dns_router" ]; then if [ "$VAR" != "1" ]; then {
+				nvram set "${i}"="1"
+			}; else continue; fi
+			elif [ "$VAR" ]; then {
+				nvram set "${i}"=""
+			}; else continue; fi
+			NVCHECK="$((NVCHECK + 1))"
 		done
 	done
 	if [ "$(pidof stubby)" ]; then {
@@ -805,16 +803,14 @@ check_dns_filter() {
 				for VAR in "$(nvram get ${i} 2>/dev/null)"; do
 					if [ "${i}" = "dnsfilter_mode" ]; then if [ "$VAR" != "11" ]; then {
 						nvram set "${i}"="11"
-						NVCHECK="$((NVCHECK + 1))"
-					}; else continue; fi; fi
-					if [ "${i}" = "dhcpd_dns_router" ]; then if [ "$VAR" != "1" ]; then {
-						nvram set "${i}"="1"
-						NVCHECK="$((NVCHECK + 1))"
-					}; else continue; fi; fi
-					if [ "$VAR" ]; then {
-						nvram set "${i}"=""
-						NVCHECK="$((NVCHECK + 1))"
 					}; else continue; fi
+					elif [ "${i}" = "dhcpd_dns_router" ]; then if [ "$VAR" != "1" ]; then {
+						nvram set "${i}"="1"
+					}; else continue; fi
+					elif [ "$VAR" ]; then {
+						nvram set "${i}"=""
+					}; else continue; fi
+					NVCHECK="$((NVCHECK + 1))"
 				done
 			done
 			PTXT "${INFO} DNS is set to redirect All DNS resolutions through to Dnscrypt-Proxy."
