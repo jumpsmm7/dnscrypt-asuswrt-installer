@@ -575,7 +575,10 @@ start_dnscrypt_proxy() {
 	if { [ "$(grep -cE '^# use_syslog = true' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "1" ] && [ "$(grep -cE '^# log_file =' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "5" ]; }; then LOG_FACILITY="-syslog"; fi
 	DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
 	{ kill_processes dnscrypt-proxy; }
-	if ! dnscrypt_wait_stopped 30; then logger -st "${NAME}" "Warning: unable to stop existing dnscrypt-proxy processes before start."; return 1; fi
+	if ! dnscrypt_wait_stopped 30; then
+		logger -st "${NAME}" "Warning: unable to stop existing dnscrypt-proxy processes before start."
+		return 1
+	fi
 	logger -st "${NAME}" "Starting dnscrypt-proxy from ${NAME}."
 	{ nohup ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 	if ! grep -q '^servers-file=/jffs/dnscrypt/resolv.dnsmasq' "/etc/dnsmasq.conf"; then service restart_dnsmasq >/dev/null 2>&1; fi
