@@ -748,12 +748,14 @@ check_dns_environment() {
 	NVCHECK="0"
 	for i in dhcp_dns1_x dhcp_dns2_x dhcpd_dns_router dnspriv_enable; do
 		for VAR in "$(nvram get ${i} 2>/dev/null)"; do
-			if [ "${i}" = "dnspriv_enable" ]; then if [ "$VAR" != "0" ]; then {
-				nvram set "${i}"="0"
-			}; else continue; fi
-			elif [ "${i}" = "dhcpd_dns_router" ]; then if [ "$VAR" != "1" ]; then {
-				nvram set "${i}"="1"
-			}; else continue; fi
+			if [ "${i}" = "dnspriv_enable" ]; then
+				if [ "$VAR" != "0" ]; then {
+					nvram set "${i}"="0"
+				}; else continue; fi
+			elif [ "${i}" = "dhcpd_dns_router" ]; then
+				if [ "$VAR" != "1" ]; then {
+					nvram set "${i}"="1"
+				}; else continue; fi
 			elif [ "$VAR" ]; then {
 				nvram set "${i}"=""
 			}; else continue; fi
@@ -801,12 +803,14 @@ check_dns_filter() {
 		if [ "$USE_SOME" -eq 1 ]; then
 			for i in dnsfilter_custom1 dnsfilter_custom2 dnsfilter_custom3 dnsfilter_rulelist dnsfilter_rulelist1 dnsfilter_rulelist2 dnsfilter_rulelist3 dnsfilter_rulelist4 dnsfilter_rulelist5 dhcp_dns1_x dhcp_dns2_x dnsfilter_mode dhcpd_dns_router; do
 				for VAR in "$(nvram get ${i} 2>/dev/null)"; do
-					if [ "${i}" = "dnsfilter_mode" ]; then if [ "$VAR" != "11" ]; then {
-						nvram set "${i}"="11"
-					}; else continue; fi
-					elif [ "${i}" = "dhcpd_dns_router" ]; then if [ "$VAR" != "1" ]; then {
-						nvram set "${i}"="1"
-					}; else continue; fi
+					if [ "${i}" = "dnsfilter_mode" ]; then
+						if [ "$VAR" != "11" ]; then {
+							nvram set "${i}"="11"
+						}; else continue; fi
+					elif [ "${i}" = "dhcpd_dns_router" ]; then
+						if [ "$VAR" != "1" ]; then {
+							nvram set "${i}"="1"
+						}; else continue; fi
 					elif [ "$VAR" ]; then {
 						nvram set "${i}"=""
 					}; else continue; fi
