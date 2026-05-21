@@ -772,7 +772,7 @@ check_dns_environment() {
 				}; else continue; fi
 				NVCHECK="$((NVCHECK + 1))"
 			done
-		;;
+			;;
 		1)
 			# Do not restore if we never saved anything.
 			if [ "${_DNS_NVRAM_SAVED:-0}" != "1" ]; then
@@ -786,10 +786,10 @@ check_dns_environment() {
 				}; else continue; fi
 				NVCHECK="$((NVCHECK + 1))"
 			done
-		;;
+			;;
 		*)
 			return 1
-		;;
+			;;
 	esac
 	if [ "${NVCHECK}" != "0" ]; then
 		{ nvram commit; }
