@@ -314,20 +314,19 @@ check_dns_environment() {
 		NVCHECK="$((NVCHECK + 1))"
 	fi
 	for i in dnspriv_enable dhcpd_dns_router dhcp_dns1_x dhcp_dns2_x; do
-		for VAR in "$(nvram get ${i} 2>/dev/null)"; do
-			if [ "${i}" = "dnspriv_enable" ]; then
-				if [ "${VAR}" != "0" ]; then {
-					nvram set "${i}"="0"
-				}; else continue; fi
-			elif [ "${i}" = "dhcpd_dns_router" ]; then
-				if [ "${VAR}" != "1" ]; then {
-					nvram set "${i}"="1"
-				}; else continue; fi
-			elif [ "${VAR}" ] && [ "${NVCHECK}" != "0" ]; then {
-				nvram set "${i}"=""
+		VAR="$(nvram get "${i}" 2>/dev/null)"
+		if [ "${i}" = "dnspriv_enable" ]; then
+			if [ "${VAR}" != "0" ]; then {
+				nvram set "${i}"="0"
 			}; else continue; fi
-			NVCHECK="$((NVCHECK + 1))"
-		done
+		elif [ "${i}" = "dhcpd_dns_router" ]; then
+			if [ "${VAR}" != "1" ]; then {
+				nvram set "${i}"="1"
+			}; else continue; fi
+		elif [ "${VAR}" ] && [ "${NVCHECK}" != "0" ]; then {
+			nvram set "${i}"=""
+		}; else continue; fi
+		NVCHECK="$((NVCHECK + 1))"
 	done
 	if [ "$NVCHECK" != "0" ]; then
 		{ nvram commit; }
@@ -346,10 +345,8 @@ dnsmasq_params() {
 			append_on_demand "${CONFIG}" "no-resolv"
 			append_on_demand /jffs/dnscrypt/resolv.dnsmasq "server=127.0.1.1"
 			for VAR in wan_dns wan0_dns wan1_dns wan_dns1_x wan_dns2_x wan0_dns1_x wan0_dns2_x wan1_dns1_x wan1_dns2_x wan0_xdns wan1_xdns ipv6_get_dns ipv6_dns1 ipv6_dns2 ipv6_dns3; do
-				for DNS in $(nvram get "${VAR}" 2>/dev/null); do
-					[ -n "${DNS}" ] || continue
-					remove_dnsmasq_server /jffs/dnscrypt/resolv.dnsmasq "${DNS}"
-				done
+				DNS="$(nvram get "${VAR}" 2>/dev/null)"
+				if [ "${DNS}" ]; then { remove_dnsmasq_server /jffs/dnscrypt/resolv.dnsmasq "${DNS}"; }; else { continue; }; fi
 			done
 			sed -i "/^servers-file=.*$/d" "${CONFIG}"
 			append_on_demand "${CONFIG}" "servers-file=/jffs/dnscrypt/resolv.dnsmasq"
