@@ -307,7 +307,7 @@ append_on_demand() {
 }
 
 check_dns_environment() {
-	local i MODE NVCHECK OLDVAR VAR
+	local i MODE NVCHECK VAR
 	MODE="$1"
 	NVCHECK="0"
 	case "${MODE}" in
