@@ -312,7 +312,7 @@ check_dns_environment() {
 	case "${MODE}" in
 		running)
 			# Save original values only once.
-			if [ "${DNS_NVRAM_SAVED:-0}" != "1" ]; then
+			if [ "${_DNS_NVRAM_SAVED:-0}" != "1" ]; then
 				save_dns_nvram_environment
 			fi
 			if [ "$(pidof stubby)" ]; then
@@ -337,7 +337,7 @@ check_dns_environment() {
 		;;
 		stop)
 			# Do not restore if we never saved anything.
-			if [ "${DNS_NVRAM_SAVED:-0}" != "1" ]; then
+			if [ "${_DNS_NVRAM_SAVED:-0}" != "1" ]; then
 				return 0
 			fi
 			for i in dnspriv_enable dhcpd_dns_router dhcp_dns1_x dhcp_dns2_x; do
