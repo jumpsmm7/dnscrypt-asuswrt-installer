@@ -744,7 +744,7 @@ check_dns_environment() {
 			"${ERROR} Exiting..."
 		exit 1
 	fi
-	local i MODE NVCHECK OLDVAR VAR
+	local i MODE NVCHECK VAR
 	MODE="$1"
 	NVCHECK="0"
 	case "${MODE}" in
