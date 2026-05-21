@@ -811,7 +811,7 @@ check_dns_filter() {
 						if [ "$VAR" != "1" ]; then {
 							nvram set "${i}"="1"
 						}; else continue; fi
-					elif [ "$VAR" ] && [ "${NVCHECK}" != "0" ]; then {
+					elif [ "$VAR" ]; then {
 						nvram set "${i}"=""
 					}; else continue; fi
 					NVCHECK="$((NVCHECK + 1))"
