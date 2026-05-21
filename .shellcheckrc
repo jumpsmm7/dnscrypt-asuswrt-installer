@@ -4,6 +4,7 @@
 shell=bash
 
 disable=SC2016
+disable=SC2066
 disable=SC2034
 disable=SC2124
 disable=SC2140
