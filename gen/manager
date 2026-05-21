@@ -343,7 +343,7 @@ check_dns_environment() {
 			fi
 			for i in dnspriv_enable dhcpd_dns_router dhcp_dns1_x dhcp_dns2_x; do
 				VAR="$(nvram get "${i}" 2>/dev/null)"
-				eval "OLD_VAR=\${OLD_${i}}"
+				eval "OLD_VAR=\${_OLD_${i}}"
 				if [ "${VAR}" != "${OLD_VAR}" ]; then {
 					nvram set "${i}=${OLD_VAR}"
 				}; else continue; fi
@@ -430,7 +430,7 @@ resolv_conf_uses_rom() {
 }
 
 save_dns_nvram_environment() {
-	local VAR VALUE _DNS_NVRAM_SAVED _OLD_dnspriv_enable _OLD_dhcpd_dns_router _OLD_dhcp_dns1_x _OLD_dhcp_dns2_x
+	local VAR VALUE
 	for VAR in dnspriv_enable dhcpd_dns_router dhcp_dns1_x dhcp_dns2_x; do
 		VALUE="$(nvram get "${VAR}" 2>/dev/null)"
 		eval "_OLD_${VAR}=\${VALUE}"
