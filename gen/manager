@@ -335,7 +335,7 @@ check_dns_environment() {
 				}; else continue; fi
 				NVCHECK="$((NVCHECK + 1))"
 			done
-		;;
+			;;
 		stop)
 			# Do not restore if we never saved anything.
 			if [ "${_DNS_NVRAM_SAVED:-0}" != "1" ]; then
@@ -349,11 +349,11 @@ check_dns_environment() {
 				}; else continue; fi
 				NVCHECK="$((NVCHECK + 1))"
 			done
-		;;
+			;;
 		*)
 			logger -st "${NAME:-dns-manager}" "Invalid DNS environment mode: ${MODE}"
 			return 1
-		;;
+			;;
 	esac
 	if [ "$NVCHECK" != "0" ]; then
 		{ nvram commit; }
