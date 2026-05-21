@@ -309,26 +309,26 @@ append_on_demand() {
 check_dns_environment() {
 	local NVCHECK
 	NVCHECK="0"
-	if [ "$(nvram get dnspriv_enable 2>/dev/null)" != "0" ]; then
-		{ nvram set dnspriv_enable="0"; }
-		NVCHECK="$((NVCHECK + 1))"
-	fi
 	if [ "$(pidof stubby)" ]; then
 		{ kill_processes stubby; }
 		NVCHECK="$((NVCHECK + 1))"
 	fi
-	if [ "$(nvram get dhcp_dns1_x 2>/dev/null)" ] && [ "${NVCHECK}" != "0" ]; then
-		{ nvram set dhcp_dns1_x=""; }
-		NVCHECK="$((NVCHECK + 1))"
-	fi
-	if [ "$(nvram get dhcp_dns2_x 2>/dev/null)" ] && [ "${NVCHECK}" != "0" ]; then
-		{ nvram set dhcp_dns2_x=""; }
-		NVCHECK="$((NVCHECK + 1))"
-	fi
-	if [ "$(nvram get dhcpd_dns_router 2>/dev/null)" != "1" ] && [ "${NVCHECK}" != "0" ]; then
-		{ nvram set dhcpd_dns_router="1"; }
-		NVCHECK="$((NVCHECK + 1))"
-	fi
+	for i in dnspriv_enable dhcpd_dns_router dhcp_dns1_x dhcp_dns2_x; do
+		for VAR in "$(nvram get ${i} 2>/dev/null)"; do
+			if [ "${i}" = "dnspriv_enable" ]; then
+				if [ "${VAR}" != "0" ]; then {
+					nvram set "${i}"="0"
+				}; else continue; fi
+			elif [ "${i}" = "dhcpd_dns_router" ]; then
+				if [ "${VAR}" != "1" ]; then {
+					nvram set "${i}"="1"
+				}; else continue; fi
+			elif [ "${VAR}" ] && [ "${NVCHECK}" != "0" ]; then {
+				nvram set "${i}"=""
+			}; else continue; fi
+			NVCHECK="$((NVCHECK + 1))"
+		done
+	done
 	if [ "$NVCHECK" != "0" ]; then
 		{ nvram commit; }
 		{ service restart_dnsmasq >/dev/null 2>&1; }
