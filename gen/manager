@@ -346,10 +346,6 @@ check_dns_environment() {
 	NVCHECK="0"
 	case "${MODE}" in
 		running)
-			if [ -f "/opt/etc/init.d/S61stubby" ] || [ -f "/opt/sbin/stubby" ] || [ -f "/opt/bin/install_stubby" ] || [ -f "/jffs/scripts/install_stubby.sh" ] || [ -d "/jffs/addons/AdGuardHome.d" ]; then
-				logger -st "${NAME:-dns-manager}" "Potential stubby or adguardhome installation detected. DNS environment adjustments skipped."
-				return 1
-			fi
 			# Save original values only once.
 			if [ "${_DNS_NVRAM_SAVED:-0}" != "1" ]; then
 				save_dns_nvram_environment
