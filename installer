@@ -1171,9 +1171,14 @@ save_dns_nvram_environment() {
 	local VAR VALUE
 	for VAR in dnspriv_enable dhcpd_dns_router dhcp_dns1_x dhcp_dns2_x; do
 		VALUE="$(nvram get "${VAR}" 2>/dev/null)"
-		eval "_OLD_${VAR}=\${VALUE}"
-		export "_OLD_${VAR}"
+		case "${VAR}" in
+			dnspriv_enable) _OLD_dnspriv_enable="${VALUE}" ;;
+			dhcpd_dns_router) _OLD_dhcpd_dns_router="${VALUE}" ;;
+			dhcp_dns1_x) _OLD_dhcp_dns1_x="${VALUE}" ;;
+			dhcp_dns2_x) _OLD_dhcp_dns2_x="${VALUE}" ;;
+		esac
 	done
+	export _OLD_dnspriv_enable _OLD_dhcpd_dns_router _OLD_dhcp_dns1_x _OLD_dhcp_dns2_x
 	_DNS_NVRAM_SAVED="1"
 	export _DNS_NVRAM_SAVED
 }
@@ -2458,6 +2463,10 @@ menu() {
 		"q" | "Q")
 			PTXT "${INFO} Operations have been applied if any has been made" \
 				"${INFO} In case of anomaly, please reboot your router!"
+			# Restore pre-check DNS settings only when exiting without a local dnscrypt installation.
+			if [ ! -f "${TARG_DIR}/manager" ] && [ ! -f "${TARG_DIR}/dnscrypt-proxy" ]; then
+				check_dns_environment 1
+			fi
 			if [ -f "${HOME}/installer" ]; then rm -rf "${HOME}/installer"; fi
 			sleep 3s
 			clear
@@ -2465,7 +2474,7 @@ menu() {
 	esac
 }
 
-trap 'cleanup_api_files; check_dns_environment 1' EXIT
+trap 'cleanup_api_files' EXIT
 varcnt=0
 readonly MAX_RETRIES="1"
 until [ -n "${DNSCRYPT_VER}" ]; do
