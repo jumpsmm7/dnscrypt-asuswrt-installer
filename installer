@@ -59,6 +59,14 @@ cleanup_api_files() {
 	rm -f "${API_FILE}" "${API_HEADERS}"
 }
 
+on_installer_exit() {
+	cleanup_api_files
+	# Restore pre-check DNS settings only when exiting without a local dnscrypt installation.
+	if [ ! -f "${TARG_DIR}/dnscrypt-proxy" ]; then
+		check_dns_environment 1
+	fi
+}
+
 di_have_cmd() {
 	which "$1" >/dev/null 2>&1
 }
@@ -2479,7 +2487,7 @@ menu() {
 	esac
 }
 
-trap 'cleanup_api_files' EXIT
+trap 'on_installer_exit' EXIT
 varcnt=0
 readonly MAX_RETRIES="1"
 until [ -n "${DNSCRYPT_VER}" ]; do
