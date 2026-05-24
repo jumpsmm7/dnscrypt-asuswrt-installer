@@ -528,6 +528,32 @@ init_hwrng() {
 	return 1
 }
 
+start_jitterentropy_rngd() {
+	if [ ! -x "/jffs/dnscrypt/jitterentropy-rngd" ]; then
+		logger -st "${NAME}" "ERROR: /jffs/dnscrypt/jitterentropy-rngd is missing or not executable."
+		return 1
+	fi
+	if /jffs/dnscrypt/jitterentropy-rngd; then
+		logger -st "${NAME}" "jitterentropy-rngd: Started."
+		return 0
+	fi
+	logger -st "${NAME}" "ERROR: Failed to start jitterentropy-rngd."
+	return 1
+}
+
+start_haveged_prng() {
+	if [ ! -x "/jffs/dnscrypt/haveged" ]; then
+		logger -st "${NAME}" "ERROR: /jffs/dnscrypt/haveged is missing or not executable."
+		return 1
+	fi
+	if /jffs/dnscrypt/haveged -w 1024 -d 32 -i 32 -v 1; then
+		logger -st "${NAME}" "haveged: Started."
+		return 0
+	fi
+	logger -st "${NAME}" "ERROR: Failed to start haveged."
+	return 1
+}
+
 netcheck() {
 	local livecheck="0" i timewait
 	timewait="0"
@@ -643,7 +669,12 @@ start_dnscrypt_proxy() {
 	local DNSCRYPT_START LOG_FACILITY
 	{ cd /jffs/dnscrypt; } || return 1
 	if { [ "$(grep -cE '^# use_syslog = true' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "1" ] && [ "$(grep -cE '^# log_file =' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "5" ]; }; then LOG_FACILITY="-syslog"; fi
-	DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
+	if [ -x "./nonroot" ]; then
+		DNSCRYPT_START="./nonroot ./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
+	else
+		DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
+		logger -st "${NAME}" "Warning: /jffs/dnscrypt/nonroot is unavailable; starting dnscrypt-proxy without nonroot helper."
+	fi
 	{ kill_processes dnscrypt-proxy; }
 	if ! dnscrypt_wait_stopped 30; then
 		logger -st "${NAME}" "Warning: unable to stop existing dnscrypt-proxy processes before start."
@@ -860,12 +891,18 @@ case "$1" in
 		case "$1" in
 			"init-start")
 				proc_optimizations
-				case "${RAN_PRV}" in
-					"haveged")
-						if [ -x "/jffs/dnscrypt/haveged" ] && /jffs/dnscrypt/haveged -w 1024 -d 32 -i 32 -v 1; then :; else logger -st "${NAME}" "Warning: haveged provider selected but /jffs/dnscrypt/haveged is unavailable or failed to start."; fi
-						;;
+					case "${RAN_PRV}" in
+						"haveged")
+							{ start_haveged_prng & }
+							;;
 					"rngd")
 						{ init_hwrng & }
+						;;
+					"jitterentropy-rngd")
+						{ start_jitterentropy_rngd & }
+						;;
+					*)
+						logger -st "${NAME}" "Warning: Unknown random provider '${RAN_PRV}'."
 						;;
 				esac
 				{ "$0" monitor-start; }
