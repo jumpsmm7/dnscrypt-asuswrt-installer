@@ -1377,6 +1377,7 @@ inst_dnscrypt() {
 }
 
 inst_ran_dev() {
+	local RNG_DEV
 	if [ -c "/dev/ttyACM0" ]; then
 		local PRODSTR VID PID
 		PRODSTR="$(awk '{ print }' "/sys/class/tty/ttyACM0/device/uevent" | grep "^PRODUCT\=")"
@@ -1408,6 +1409,7 @@ inst_ran_dev() {
 }
 
 inst_random() {
+	local RNG_DEV RAN_PRV
 	create_dir "${TARG_DIR}"
 	PTXT "${INFO} Install a (P)RNG for better cryptographic operations" \
 		"${INFO} Available random number generator providers:" \
@@ -1426,21 +1428,22 @@ inst_random() {
 				end_op_message 1
 				return 1
 			fi
-			write_conf RAN_PRV haveged
+			RAN_PRV="haveged"
 			;;
 		2)
-			local RNG_DEV
+			RNG_DEV="$(read_conf RNG_DEV)"
 			{ kill_processes haveged jitterentropy-rngd rngd stty; }
 			download_file "$TARG_DIR" 755 "${URL_ARCH}/haveged" "${URL_ARCH}/rngd" "${URL_ARCH}/stty" "${URL_GEN}/manager"
 			inst_ran_dev || return
-			if [ ! -x "${TARG_DIR}/stty" ] || [ ! -x "${TARG_DIR}/rngd" ] || ! "${TARG_DIR}/stty" raw -echo -ixoff -F "/dev/${RNG_DEV}" speed 115200 || ! "${TARG_DIR}/rngd" -r "/dev/${RNG_DEV}"; then
+			if [ ! -x "${TARG_DIR}/stty" ] || [ ! -x "${TARG_DIR}/rngd" ] || ! "${TARG_DIR}/stty" raw -echo -ixoff -F "${RNG_DEV}" speed 115200 || ! "${TARG_DIR}/rngd" -r "${RNG_DEV}"; then
 				PTXT "${ERROR} Failed to start RNGD. Please verify your HW RNG device and reinstall (P)RNG."
 				end_op_message 1
 				return 1
 			fi
-			write_conf RAN_PRV rngd
+			RAN_PRV="rngd"
 			;;
 	esac
+	write_conf RAN_PRV "${RAN_PRV}"
 	write_manager_script /jffs/scripts/init-start init-start
 	end_op_message 0
 }
