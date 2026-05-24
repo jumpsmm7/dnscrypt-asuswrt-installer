@@ -56,7 +56,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             autoconf automake build-essential libtool pkg-config gettext texinfo bison gawk \
-            ${{ matrix.host_triplet }} gcc-${{ matrix.host_triplet }}
+            binutils-${{ matrix.host_triplet }} gcc-${{ matrix.host_triplet }}
 
       - name: Build helper binaries from source
         env:
