@@ -1415,16 +1415,26 @@ inst_ran_dev() {
 }
 
 inst_random() {
-	local RNG_DEV RAN_PRV
+	local RNG_DEV RAN_PRV MAX_OPTION HAS_JITTERENTROPY
 	create_dir "${TARG_DIR}"
+	HAS_JITTERENTROPY="0"
+	if http_get_file "${URL_ARCH}/jitterentropy-rngd.md5sum" "/dev/null" "" insecure; then
+		HAS_JITTERENTROPY="1"
+	fi
 	PTXT "${INFO} Install a (P)RNG for better cryptographic operations" \
 		"${INFO} Available random number generator providers:" \
 		"  1) HAVEGED (Preferred if you do not have a HW RNG)" \
-		"  2) RNGD (Preferred if you have a HW RNG)" \
-		"  3) JITTERENTROPY-RNGD (Alternative software PRNG)" \
-		"${INFO} If you choose a HW RNG, please have it plugged in now before" \
+		"  2) RNGD (Preferred if you have a HW RNG)"
+	if [ "${HAS_JITTERENTROPY}" = "1" ]; then
+		PTXT "  3) JITTERENTROPY-RNGD (Alternative software PRNG)"
+	else
+		PTXT "${WARNING} 3) JITTERENTROPY-RNGD is temporarily unavailable for this architecture."
+	fi
+	PTXT "${INFO} If you choose a HW RNG, please have it plugged in now before" \
 		"${INFO} proceeding with your selection."
-	read_input_num "Please enter the number designates your selection" 1 3
+	MAX_OPTION="2"
+	[ "${HAS_JITTERENTROPY}" = "1" ] && MAX_OPTION="3"
+	read_input_num "Please enter the number designates your selection" 1 "${MAX_OPTION}"
 	case "${CHOSEN}" in
 		1)
 			rm -f "${TARG_DIR}/rngd" "${TARG_DIR}/stty"
