@@ -124,8 +124,38 @@ jobs:
           }
 
           build_nonroot() {
-            git clone --depth=1 https://github.com/oznu/docker-nonroot.git _src/nonroot
-            "$CC" -Os -s _src/nonroot/nonroot.c -o "${OUT_DIR}/nonroot"
+            cat > _src/nonroot.c <<'EOF'
+            #include <errno.h>
+            #include <pwd.h>
+            #include <stdio.h>
+            #include <stdlib.h>
+            #include <string.h>
+            #include <sys/types.h>
+            #include <unistd.h>
+
+            int main(int argc, char **argv) {
+              struct passwd *pw = getpwnam("nobody");
+              if (pw == NULL) {
+                fprintf(stderr, "nonroot: unable to resolve user 'nobody': %s\n", strerror(errno));
+                return 1;
+              }
+
+              if (setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {
+                fprintf(stderr, "nonroot: unable to drop privileges: %s\n", strerror(errno));
+                return 1;
+              }
+
+              if (argc < 2) {
+                fprintf(stderr, "usage: nonroot <program> [args...]\n");
+                return 1;
+              }
+
+              execvp(argv[1], &argv[1]);
+              fprintf(stderr, "nonroot: failed to exec '%s': %s\n", argv[1], strerror(errno));
+              return 127;
+            }
+            EOF
+            "$CC" -Os -s _src/nonroot.c -o "${OUT_DIR}/nonroot"
           }
  
           build_jitterentropy_rngd() {
