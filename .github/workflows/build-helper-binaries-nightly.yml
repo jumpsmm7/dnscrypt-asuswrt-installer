@@ -124,8 +124,8 @@ jobs:
           }
 
           build_nonroot() {
-            git clone --depth=1 https://github.com/oznu/docker-nonroot.git _src/nonroot
-            "$CC" -Os -s _src/nonroot/nonroot.c -o "${OUT_DIR}/nonroot"
+            curl -fsSL https://raw.githubusercontent.com/oznu/docker-dnscrypt-proxy/master/root/nonroot.c -o _src/nonroot.c
+            "$CC" -Os -s _src/nonroot.c -o "${OUT_DIR}/nonroot"
           }
  
           build_jitterentropy_rngd() {
