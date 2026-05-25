@@ -669,6 +669,7 @@ start_dnscrypt_proxy() {
 	local LOG_FACILITY
 	{ cd /jffs/dnscrypt; } || return 1
 	if { [ "$(grep -cE '^# use_syslog = true' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "1" ] && [ "$(grep -cE '^# log_file =' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "5" ]; }; then LOG_FACILITY="-syslog"; fi
+	DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
 	{ kill_processes dnscrypt-proxy; }
 	if ! dnscrypt_wait_stopped 30; then
 		logger -st "${NAME}" "Warning: unable to stop existing dnscrypt-proxy processes before start."
@@ -676,7 +677,7 @@ start_dnscrypt_proxy() {
 	fi
 	logger -st "${NAME}" "Starting dnscrypt-proxy from ${NAME}."
 	if [ -x "./nonroot" ]; then
-		{ nohup ./nonroot ./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml >/dev/null 2>&1 </dev/null & }
+		{ nohup ./nonroot ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 		if ! dnscrypt_wait_started 30; then
 			logger -st "${NAME}" "Warning: /jffs/dnscrypt/nonroot failed to start dnscrypt-proxy; retrying without nonroot helper."
 			{ kill_processes dnscrypt-proxy; }
@@ -684,11 +685,11 @@ start_dnscrypt_proxy() {
 				logger -st "${NAME}" "Warning: unable to stop failed dnscrypt-proxy processes before fallback start."
 				return 1
 			fi
-			{ nohup ./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml >/dev/null 2>&1 </dev/null & }
+			{ nohup ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 		fi
 	else
 		logger -st "${NAME}" "Warning: /jffs/dnscrypt/nonroot is unavailable; starting dnscrypt-proxy without nonroot helper."
-		{ nohup ./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml >/dev/null 2>&1 </dev/null & }
+		{ nohup ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 	fi
 	if ! grep -q '^servers-file=/jffs/dnscrypt/resolv.dnsmasq' "/etc/dnsmasq.conf"; then service restart_dnsmasq >/dev/null 2>&1; fi
 	if { dnscrypt_wait_started 30; } && { service_wait netcheck 300; }; then return 0; else return 1; fi
