@@ -92,8 +92,35 @@ jobs:
           export RANLIB="$CC_PREFIX-ranlib"
           export STRIP="$CC_PREFIX-strip"
 
+          HAVEGED_REPO="https://github.com/jirka-h/haveged.git"
+          HAVEGED_REF="4ac12f79eb4e8f7233a8f5c57d5a0d84b18f88f6"
+          RNG_TOOLS_REPO="https://github.com/nhorman/rng-tools.git"
+          RNG_TOOLS_REF="6e5984f3b12fdd82b7fd2f932a0b5014fe0f4890"
+          JITTERENTROPY_REPO="https://github.com/smuellerDD/jitterentropy-rngd.git"
+          JITTERENTROPY_REF="6a56998e2e5d9f79e5bbf57d4c2f4fd2e9c8dc95"
+          NONROOT_REPO="https://github.com/simonswine/nonroot.git"
+          NONROOT_REF="7f1f1d1b9a7c18d5dc2f5f19c8de8f0e8f0f730e"
+          COREUTILS_VERSION="9.5"
+          COREUTILS_SHA256="cd80eb5b247f87670353197a8fc3e3f7fb77f607f9f10925a60214790514d31a"
+
+          clone_repo_at_ref() {
+            repo_url="$1"
+            repo_ref="$2"
+            destination="$3"
+
+            git clone --depth=1 "$repo_url" "$destination"
+            cd "$destination"
+            git fetch --depth=1 origin "$repo_ref"
+            git checkout --detach "$repo_ref"
+            if [ "$(git rev-parse HEAD)" != "$repo_ref" ]; then
+              echo "Resolved revision for $repo_url did not match pinned ref $repo_ref" >&2
+              exit 1
+            fi
+            cd "${GITHUB_WORKSPACE}"
+          }
+
           build_haveged() {
-            git clone --depth=1 https://github.com/jirka-h/haveged.git _src/haveged
+            clone_repo_at_ref "$HAVEGED_REPO" "$HAVEGED_REF" _src/haveged
             cd _src/haveged
             ./autogen.sh
             ./configure --host="$HOST" --prefix=/usr
@@ -103,7 +130,7 @@ jobs:
           }
 
           build_rngd() {
-            git clone --depth=1 https://github.com/nhorman/rng-tools.git _src/rng-tools
+            clone_repo_at_ref "$RNG_TOOLS_REPO" "$RNG_TOOLS_REF" _src/rng-tools
             cd _src/rng-tools
             ./autogen.sh
             ./configure --host="$HOST" --prefix=/usr --disable-silent-rules
@@ -113,9 +140,10 @@ jobs:
           }
 
           build_stty() {
-            curl -fsSL https://ftp.gnu.org/gnu/coreutils/coreutils-latest.tar.xz -o _build/coreutils.tar.xz
+            curl -fsSL "https://ftp.gnu.org/gnu/coreutils/coreutils-${COREUTILS_VERSION}.tar.xz" -o _build/coreutils.tar.xz
+            echo "${COREUTILS_SHA256}  _build/coreutils.tar.xz" | sha256sum -c -
             tar -xf _build/coreutils.tar.xz -C _src
-            coreutils_dir="$(find _src -maxdepth 1 -type d -name 'coreutils-*' | head -n1)"
+            coreutils_dir="_src/coreutils-${COREUTILS_VERSION}"
             cd "$coreutils_dir"
             ./configure --host="$HOST" --prefix=/usr
             make -j"$(nproc)" src/stty
@@ -124,42 +152,12 @@ jobs:
           }
 
           build_nonroot() {
-            cat > _src/nonroot.c <<'EOF'
-            #include <errno.h>
-            #include <pwd.h>
-            #include <stdio.h>
-            #include <stdlib.h>
-            #include <string.h>
-            #include <sys/types.h>
-            #include <unistd.h>
-
-            int main(int argc, char **argv) {
-              struct passwd *pw = getpwnam("nobody");
-              if (pw == NULL) {
-                fprintf(stderr, "nonroot: unable to resolve user 'nobody': %s\n", strerror(errno));
-                return 1;
-              }
-
-              if (setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {
-                fprintf(stderr, "nonroot: unable to drop privileges: %s\n", strerror(errno));
-                return 1;
-              }
-
-              if (argc < 2) {
-                fprintf(stderr, "usage: nonroot <program> [args...]\n");
-                return 1;
-              }
-
-              execvp(argv[1], &argv[1]);
-              fprintf(stderr, "nonroot: failed to exec '%s': %s\n", argv[1], strerror(errno));
-              return 127;
-            }
-            EOF
-            "$CC" -Os -s _src/nonroot.c -o "${OUT_DIR}/nonroot"
+            clone_repo_at_ref "$NONROOT_REPO" "$NONROOT_REF" _src/nonroot
+            "$CC" -Os -s _src/nonroot/nonroot.c -o "${OUT_DIR}/nonroot"
           }
  
           build_jitterentropy_rngd() {
-            git clone --depth=1 https://github.com/smuellerDD/jitterentropy-rngd.git _src/jitterentropy-rngd
+            clone_repo_at_ref "$JITTERENTROPY_REPO" "$JITTERENTROPY_REF" _src/jitterentropy-rngd
             cd _src/jitterentropy-rngd
             make -j"$(nproc)" CC="$CC"
             cp jitterentropy-rngd "${GITHUB_WORKSPACE}/${OUT_DIR}/jitterentropy-rngd"
