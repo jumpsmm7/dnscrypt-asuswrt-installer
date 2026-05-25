@@ -900,10 +900,10 @@ case "$1" in
 		case "$1" in
 			"init-start")
 				proc_optimizations
-					case "${RAN_PRV}" in
-						"haveged")
-							{ start_haveged_prng & }
-							;;
+				case "${RAN_PRV}" in
+					"haveged")
+						{ start_haveged_prng & }
+						;;
 					"rngd")
 						{ init_hwrng & }
 						;;
