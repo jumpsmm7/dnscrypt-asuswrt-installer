@@ -1719,7 +1719,7 @@ uninst_all() {
 	if nvram get rc_support | grep -q 'mtlancfg'; then del_jffs_script /jffs/scripts/dnsmasq-sdn.postconf; fi
 	del_jffs_script /jffs/scripts/init-start
 	del_jffs_script /jffs/scripts/services-stop
-	{ kill_processes haveged rngd stty dnscrypt-proxy; }
+	{ kill_processes haveged jitterentropy-rngd rngd stty dnscrypt-proxy; }
 	del_between_magic /jffs/scripts/service-event-end '# Asuswrt-Merlin-Dnscrypt-Proxy-Installer'
 	local MAN_PID PID
 	MAN_PID="$(pidof manager)"
