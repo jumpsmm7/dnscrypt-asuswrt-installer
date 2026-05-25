@@ -175,7 +175,7 @@ The installer lets users choose either the repository-provided `dnscrypt-proxy-n
 
 The `Build helper-binaries-nightly` workflow also runs nightly (cron `37 7 * * *`) and supports manual `Run workflow` execution with the same `target_branch` input behavior. It compiles installer helper binaries from upstream source repositories on every run (rather than extracting prebuilt package blobs), then updates checksums in-place:
 
-- `armv7/{haveged,rngd,jitterentropy-rngd,stty,nonroot}` + matching `.md5sum` files, cross-compiled with `arm-linux-gnueabihf`.
+- `armv7/{haveged,rngd,jitterentropy-rngd,stty,nonroot}` + matching `.md5sum` files, cross-compiled with `arm-linux-gnueabi`.
 - `armv8/{haveged,rngd,jitterentropy-rngd,stty,nonroot}` + matching `.md5sum` files, cross-compiled with `aarch64-linux-gnu`.
 
 The workflow only commits when one or more helper binaries or checksums changed.
