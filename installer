@@ -1460,6 +1460,11 @@ inst_random() {
 			RAN_PRV="rngd"
 			;;
 		3)
+			if [ "${JITTERENTROPY_AVAILABLE}" != "1" ]; then
+				PTXT "${ERROR} JITTERENTROPY-RNGD is currently unavailable for your architecture."
+				end_op_message 1
+				return 1
+			fi
 			rm -f "${TARG_DIR}/haveged" "${TARG_DIR}/rngd" "${TARG_DIR}/stty"
 			{ kill_processes haveged jitterentropy-rngd rngd stty; }
 			download_file "${TARG_DIR}" 755 "${URL_ARCH}/jitterentropy-rngd" "${URL_GEN}/manager"
