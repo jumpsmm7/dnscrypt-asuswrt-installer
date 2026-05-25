@@ -666,9 +666,10 @@ system_time_ready() {
 
 # Service control helpers
 start_dnscrypt_proxy() {
-	local DNSCRYPT_START LOG_FACILITY
+	local LOG_FACILITY
 	{ cd /jffs/dnscrypt; } || return 1
 	if { [ "$(grep -cE '^# use_syslog = true' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "1" ] && [ "$(grep -cE '^# log_file =' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "5" ]; }; then LOG_FACILITY="-syslog"; fi
+	DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
 	{ kill_processes dnscrypt-proxy; }
 	if ! dnscrypt_wait_stopped 30; then
 		logger -st "${NAME}" "Warning: unable to stop existing dnscrypt-proxy processes before start."
@@ -676,17 +677,17 @@ start_dnscrypt_proxy() {
 	fi
 	logger -st "${NAME}" "Starting dnscrypt-proxy from ${NAME}."
 	if [ -x "./nonroot" ]; then
-		DNSCRYPT_START="./nonroot ./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
-		{ nohup ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
-		if ! dnscrypt_wait_started 15; then
-			logger -st "${NAME}" "Warning: nonroot launch failed; retrying dnscrypt-proxy directly."
+		{ nohup ./nonroot ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
+		if ! dnscrypt_wait_started 30; then
+			logger -st "${NAME}" "Warning: /jffs/dnscrypt/nonroot failed to start dnscrypt-proxy; retrying without nonroot helper."
 			{ kill_processes dnscrypt-proxy; }
-			dnscrypt_wait_stopped 15
-			DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
+			if ! dnscrypt_wait_stopped 30; then
+				logger -st "${NAME}" "Warning: unable to stop failed dnscrypt-proxy processes before fallback start."
+				return 1
+			fi
 			{ nohup ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 		fi
 	else
-		DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
 		logger -st "${NAME}" "Warning: /jffs/dnscrypt/nonroot is unavailable; starting dnscrypt-proxy without nonroot helper."
 		{ nohup ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 	fi
@@ -899,10 +900,10 @@ case "$1" in
 		case "$1" in
 			"init-start")
 				proc_optimizations
-					case "${RAN_PRV}" in
-						"haveged")
-							{ start_haveged_prng & }
-							;;
+				case "${RAN_PRV}" in
+					"haveged")
+						{ start_haveged_prng & }
+						;;
 					"rngd")
 						{ init_hwrng & }
 						;;
