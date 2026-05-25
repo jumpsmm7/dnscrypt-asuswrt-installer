@@ -1460,7 +1460,7 @@ inst_random() {
 			RAN_PRV="rngd"
 			;;
 		3)
-			if [ "${JITTERENTROPY_AVAILABLE}" != "1" ]; then
+			if [ "${HAS_JITTERENTROPY}" != "1" ]; then
 				PTXT "${ERROR} JITTERENTROPY-RNGD is currently unavailable for your architecture."
 				end_op_message 1
 				return 1
