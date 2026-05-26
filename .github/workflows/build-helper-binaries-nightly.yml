@@ -152,6 +152,7 @@ jobs:
           build_nonroot() {
             printf '%s\n' \
               '#include <errno.h>' \
+              '#include <grp.h>' \
               '#include <pwd.h>' \
               '#include <stdio.h>' \
               '#include <stdlib.h>' \
@@ -171,7 +172,7 @@ jobs:
               '    return 65;' \
               '  }' \
               '' \
-              '  if (setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {' \
+              '  if (setgroups(0, NULL) != 0 || setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {' \
               '    fprintf(stderr, "nonroot: failed to switch to '\''%s'\'': %s\\n", argv[1], strerror(errno));' \
               '    return 66;' \
               '  }' \
