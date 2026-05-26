@@ -677,7 +677,7 @@ start_dnscrypt_proxy() {
 	fi
 	logger -st "${NAME}" "Starting dnscrypt-proxy from ${NAME}."
 	if [ -x "./nonroot" ]; then
-		{ nohup ./nonroot ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
+		{ nohup ./nonroot nobody ${DNSCRYPT_START} >/dev/null 2>&1 </dev/null & }
 		if ! dnscrypt_wait_started 30; then
 			logger -st "${NAME}" "Warning: /jffs/dnscrypt/nonroot failed to start dnscrypt-proxy; retrying without nonroot helper."
 			{ kill_processes dnscrypt-proxy; }

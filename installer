@@ -1467,7 +1467,11 @@ inst_random() {
 			fi
 			rm -f "${TARG_DIR}/haveged" "${TARG_DIR}/rngd" "${TARG_DIR}/stty"
 			{ kill_processes haveged jitterentropy-rngd rngd stty; }
-			download_file "${TARG_DIR}" 755 "${URL_ARCH}/jitterentropy-rngd" "${URL_GEN}/manager"
+			if ! download_file "${TARG_DIR}" 755 "${URL_ARCH}/jitterentropy-rngd" "${URL_GEN}/manager"; then
+				PTXT "${ERROR} Failed to download jitterentropy-rngd and/or updated manager script."
+				end_op_message 1
+				return 1
+			fi
 			if [ ! -x "${TARG_DIR}/jitterentropy-rngd" ] || ! "${TARG_DIR}/jitterentropy-rngd"; then
 				PTXT "${ERROR} Failed to start jitterentropy-rngd. Please try reinstalling (P)RNG or switch providers."
 				end_op_message 1
