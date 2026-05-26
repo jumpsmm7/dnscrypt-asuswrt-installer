@@ -73,7 +73,7 @@ jobs:
           set -eu
           mkdir -p "$HOME/.toolchains"
           BOOTLIN_BASE_URL="https://toolchains.bootlin.com/downloads/releases/toolchains/armv7-eabihf/tarballs"
-          BOOTLIN_TARBALL="armv7-eabihf--uclibc--stable-2017.05-1.tar.bz2"
+          BOOTLIN_TARBALL="armv7-eabihf--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
           BOOTLIN_SHA256="4c43fb43c781548ec327eeb13f14d69fe86f6f53c1940f18f4f0d8d2797b8e79"
           curl -fsSL "$BOOTLIN_BASE_URL/$BOOTLIN_TARBALL" -o /tmp/armv7-uclibc-toolchain.tar.bz2
           echo "$BOOTLIN_SHA256  /tmp/armv7-uclibc-toolchain.tar.bz2" | sha256sum -c -
@@ -259,6 +259,8 @@ jobs:
           set -eu
           find _helper-artifacts/helper-binaries-nightly-linux-armv7 -type f -exec cp -f {} armv7/ \;
           find _helper-artifacts/helper-binaries-nightly-linux-armv8 -type f -exec cp -f {} armv8/ \;
+          chmod 755 armv7/haveged armv7/rngd armv7/stty armv7/nonroot armv7/jitterentropy-rngd
+          chmod 755 armv8/haveged armv8/rngd armv8/stty armv8/nonroot armv8/jitterentropy-rngd
 
       - name: Commit nightly helper binaries
         run: |
