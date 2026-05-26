@@ -666,7 +666,7 @@ system_time_ready() {
 
 # Service control helpers
 start_dnscrypt_proxy() {
-	local LOG_FACILITY
+	local DNSCRYPT_START LOG_FACILITY
 	{ cd /jffs/dnscrypt; } || return 1
 	if { [ "$(grep -cE '^# use_syslog = true' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "1" ] && [ "$(grep -cE '^# log_file =' /jffs/dnscrypt/dnscrypt-proxy.toml)" = "5" ]; }; then LOG_FACILITY="-syslog"; fi
 	DNSCRYPT_START="./dnscrypt-proxy ${LOG_FACILITY:+$LOG_FACILITY} -config ./dnscrypt-proxy.toml"
