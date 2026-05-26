@@ -72,9 +72,11 @@ jobs:
         run: |
           set -eu
           mkdir -p "$HOME/.toolchains"
-          curl -fsSL \
-            https://toolchains.bootlin.com/downloads/releases/toolchains/armv7-eabihf/tarballs/armv7-eabihf--uclibc--stable-2017.05-1.tar.bz2 \
-            -o /tmp/armv7-uclibc-toolchain.tar.bz2
+          BOOTLIN_BASE_URL="https://toolchains.bootlin.com/downloads/releases/toolchains/armv7-eabihf/tarballs"
+          BOOTLIN_TARBALL="armv7-eabihf--uclibc--stable-2017.05-1.tar.bz2"
+          BOOTLIN_SHA256="4c43fb43c781548ec327eeb13f14d69fe86f6f53c1940f18f4f0d8d2797b8e79"
+          curl -fsSL "$BOOTLIN_BASE_URL/$BOOTLIN_TARBALL" -o /tmp/armv7-uclibc-toolchain.tar.bz2
+          echo "$BOOTLIN_SHA256  /tmp/armv7-uclibc-toolchain.tar.bz2" | sha256sum -c -
           tar -xjf /tmp/armv7-uclibc-toolchain.tar.bz2 -C "$HOME/.toolchains"
           echo "$HOME/.toolchains/armv7-eabihf--uclibc--stable-2017.05-1/bin" >> "$GITHUB_PATH"
 
