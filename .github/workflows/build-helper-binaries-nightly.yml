@@ -28,13 +28,11 @@ jobs:
         include:
           - target: linux-armv7
             repo_dir: armv7
-            host_triplet: arm-linux-uclibcgnueabihf
-            toolchain_kind: bootlin-uclibc
-            cc_prefix: arm-buildroot-linux-uclibcgnueabihf
+            host_triplet: arm-linux-gnueabihf
+            cc_prefix: arm-linux-gnueabihf
           - target: linux-armv8
             repo_dir: armv8
             host_triplet: aarch64-linux-gnu
-            toolchain_kind: apt
             cc_prefix: aarch64-linux-gnu
 
     steps:
@@ -61,28 +59,11 @@ jobs:
           sudo apt-get install -y \
             autoconf automake build-essential libtool pkg-config gettext texinfo bison gawk curl xz-utils
 
-      - name: Install apt cross toolchain
-        if: matrix.toolchain_kind == 'apt'
+
+      - name: Install cross toolchain
         run: |
           set -eu
           sudo apt-get install -y gcc-${{ matrix.host_triplet }} binutils-${{ matrix.host_triplet }}
-
-      - name: Install ASUS-compatible armv7 uClibc toolchain
-        if: matrix.toolchain_kind == 'bootlin-uclibc'
-        run: |
-          set -eu
-          mkdir -p "$HOME/.toolchains"
-          BOOTLIN_TARBALL='armv7-eabihf--uclibc--stable-2025.08-1.tar.xz'
-          BOOTLIN_URL='https://toolchains.bootlin.com/downloads/releases/toolchains/armv7-eabihf/tarballs/'
-          if curl -fsSL -H "User-Agent: Mozilla/5.0" "${BOOTLIN_URL}${BOOTLIN_TARBALL}" -o /tmp/armv7-uclibc-toolchain.tar.xz; then
-              curl -fsSL -H "User-Agent: Mozilla/5.0" "${BOOTLIN_URL}${BOOTLIN_TARBALL}.sha256" -o /tmp/armv7-uclibc-toolchain.tar.xz.sha256
-              (cd /tmp && sha256sum -c armv7-uclibc-toolchain.tar.xz.sha256)
-          else
-            echo "Unable to download ${BOOTLIN_TARBALL} from known Bootlin URLs" >&2
-            exit 1
-          fi
-          tar -xJf /tmp/armv7-uclibc-toolchain.tar.xz -C "$HOME/.toolchains"
-          echo "$HOME/.toolchains/armv7-eabihf--uclibc--stable-2025.08-1/bin" >> "$GITHUB_PATH"
 
       - name: Build helper binaries from source
         env:
@@ -148,10 +129,12 @@ jobs:
             }
             ./configure --host="$HOST" --prefix=/usr
             make -j"$(nproc)" || {
-              echo "haveged build failed" >&2
+              echo "haveged parallel build failed; retrying single-threaded" >&2
               make clean
-              make  # Try single-threaded build for better error diagnostics
-              exit 1
+              make || {
+                echo "haveged build failed" >&2
+                exit 1
+              }
             }
 
             # Check multiple possible binary locations
