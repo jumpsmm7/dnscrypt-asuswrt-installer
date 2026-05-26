@@ -76,7 +76,6 @@ jobs:
       - name: Build helper binaries from source
         env:
           HOST: ${{ matrix.host_triplet }}
-          CC_PREFIX: ${{ matrix.cc_prefix }}
           OUT_DIR: dist/${{ matrix.repo_dir }}
         run: |
           set -eu
