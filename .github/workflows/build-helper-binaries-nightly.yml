@@ -98,8 +98,6 @@ jobs:
           RNG_TOOLS_REF="6e5984f3b12fdd82b7fd2f932a0b5014fe0f4890"
           JITTERENTROPY_REPO="https://github.com/smuellerDD/jitterentropy-rngd.git"
           JITTERENTROPY_REF="6a56998e2e5d9f79e5bbf57d4c2f4fd2e9c8dc95"
-          NONROOT_REPO="https://github.com/simonswine/nonroot.git"
-          NONROOT_REF="7f1f1d1b9a7c18d5dc2f5f19c8de8f0e8f0f730e"
           COREUTILS_VERSION="9.5"
           COREUTILS_SHA256="cd80eb5b247f87670353197a8fc3e3f7fb77f607f9f10925a60214790514d31a"
 
@@ -152,8 +150,37 @@ jobs:
           }
 
           build_nonroot() {
-            clone_repo_at_ref "$NONROOT_REPO" "$NONROOT_REF" _src/nonroot
-            "$CC" -Os -s _src/nonroot/nonroot.c -o "${OUT_DIR}/nonroot"
+            printf '%s\n' \
+              '#include <errno.h>' \
+              '#include <pwd.h>' \
+              '#include <stdio.h>' \
+              '#include <stdlib.h>' \
+              '#include <string.h>' \
+              '#include <sys/types.h>' \
+              '#include <unistd.h>' \
+              '' \
+              'int main(int argc, char **argv) {' \
+              '  if (argc < 3) {' \
+              '    fprintf(stderr, "Usage: %s <username> <program> [args...]\\n", argv[0]);' \
+              '    return 64;' \
+              '  }' \
+              '' \
+              '  struct passwd *pw = getpwnam(argv[1]);' \
+              '  if (!pw) {' \
+              '    fprintf(stderr, "nonroot: user '\''%s'\'' not found\\n", argv[1]);' \
+              '    return 65;' \
+              '  }' \
+              '' \
+              '  if (setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {' \
+              '    fprintf(stderr, "nonroot: failed to switch to '\''%s'\'': %s\\n", argv[1], strerror(errno));' \
+              '    return 66;' \
+              '  }' \
+              '' \
+              '  execvp(argv[2], &argv[2]);' \
+              '  fprintf(stderr, "nonroot: failed to exec '\''%s'\'': %s\\n", argv[2], strerror(errno));' \
+              '  return 67;' \
+              '}' > _build/nonroot.c
+            "$CC" -Os -s _build/nonroot.c -o "${OUT_DIR}/nonroot"
           }
  
           build_jitterentropy_rngd() {
