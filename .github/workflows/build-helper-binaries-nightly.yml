@@ -1224,7 +1224,7 @@ jobs:
           };
 
           static void usage(const char *program) {
-            fprintf(stderr, "Usage: %s [-F DEVICE] [raw] [-echo] [-ixoff] [speed BAUD]\n", program);
+            fprintf(stderr, "Usage: %s [-F DEVICE | --file=DEVICE] [raw] [-echo] [-ixoff] [speed BAUD]\n", program);
           }
 
           static int parse_speed(const char *text, speed_t *speed) {
@@ -1352,14 +1352,25 @@ jobs:
           }
           STTY_C
 
-            echo "Building stty compatibility helper for $HOST"
+            echo "Building static Asuswrt-Merlin stty helper for rng-tools on $HOST"
 
             "$CC" \
               ${COMMON_CPPFLAGS:-} \
               ${COMMON_CFLAGS:-} \
               "$src" \
+              -static \
               ${COMMON_LDFLAGS:-} \
               -o "$out"
+
+            "$READELF" -l "$out" | grep -q 'INTERP' && {
+              echo "stty helper for $HOST must be static and must not request a runtime loader" >&2
+              exit 1
+            }
+
+            "$READELF" -d "$out" 2>/dev/null | grep -q 'NEEDED' && {
+              echo "stty helper for $HOST must not depend on target shared libraries" >&2
+              exit 1
+            }
 
             "$STRIP" "$out" 2>/dev/null || true
 

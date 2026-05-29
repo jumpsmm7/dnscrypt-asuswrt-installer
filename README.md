@@ -178,6 +178,8 @@ The `Build helper-binaries-nightly` workflow also runs nightly (cron `37 7 * * *
 - `armv7/{haveged,rngd,jitterentropy-rngd,stty,nonroot}` + matching `.md5sum` files, built using `arm-linux-gnueabihf` toolchain packages.
 - `armv8/{haveged,rngd,jitterentropy-rngd,stty,nonroot}` + matching `.md5sum` files, built using `aarch64-linux-gnu` toolchain packages.
 
+The bundled `stty` is a static, minimal Asuswrt-Merlin compatibility helper used only by the RNGD hardware RNG path to configure the selected serial HWRNG device before `rngd` starts.
+
 The workflow only commits when one or more helper binaries or checksums changed.
 
 ## Project notes
