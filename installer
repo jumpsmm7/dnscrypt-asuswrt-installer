@@ -177,6 +177,13 @@ dnscrypt_release_version_is_valid() {
 	PTXT "$1" | grep -q '[0-9]'
 }
 
+dnscrypt_release_version_is_stable() {
+	dnscrypt_release_version_is_valid "$1" || return 1
+	case "$1" in
+		*[A-Za-z]*) return 1 ;;
+	esac
+}
+
 normalize_dnscrypt_release_version() {
 	PTXT "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s#^.*/tag/##; s#[/?#].*$##'
 }
@@ -195,7 +202,14 @@ get_dnscrypt_release_version_redirect() {
 }
 
 get_dnscrypt_release_version_atom() {
-	normalize_dnscrypt_release_version "$(http_get_stdout "${RELEASES_ATOM_URL}" | sed -n 's#.*<title>\([^<]*\)</title>.*#\1#p' | sed -n '2p')"
+	local CANDIDATE
+	http_get_stdout "${RELEASES_ATOM_URL}" | sed -n 's#.*<title>\([^<]*\)</title>.*#\1#p' | while IFS= read -r CANDIDATE; do
+		CANDIDATE="$(normalize_dnscrypt_release_version "${CANDIDATE}")"
+		if dnscrypt_release_version_is_stable "${CANDIDATE}"; then
+			PTXT "${CANDIDATE}"
+			break
+		fi
+	done
 }
 
 choose_dnscrypt_release_version() {
@@ -226,7 +240,19 @@ choose_dnscrypt_release_version() {
 
 collect_dnscrypt_release_metadata() {
 	DNSCRYPT_VER_API="$(get_dnscrypt_release_version_api 2>/dev/null || true)"
+	DNSCRYPT_VER_REDIRECT=""
+	DNSCRYPT_VER_ATOM=""
+	if dnscrypt_release_version_is_valid "${DNSCRYPT_VER_API}"; then
+		choose_dnscrypt_release_version
+		return
+	fi
+
 	DNSCRYPT_VER_REDIRECT="$(get_dnscrypt_release_version_redirect 2>/dev/null || true)"
+	if dnscrypt_release_version_is_valid "${DNSCRYPT_VER_REDIRECT}"; then
+		choose_dnscrypt_release_version
+		return
+	fi
+
 	DNSCRYPT_VER_ATOM="$(get_dnscrypt_release_version_atom 2>/dev/null || true)"
 	choose_dnscrypt_release_version
 }
